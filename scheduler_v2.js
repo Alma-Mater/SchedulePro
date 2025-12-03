@@ -334,20 +334,66 @@ function updateConfigureDaysButton() {
 
 // Update statistics
 function updateStats() {
-    document.getElementById('totalCourses').textContent = courses.length;
+    const totalCourses = courses.length;
+    document.getElementById('totalCourses').textContent = totalCourses;
     
+    if (totalCourses === 0) {
+        document.getElementById('percentAssigned').textContent = '0%';
+        document.getElementById('percentDaysFilled').textContent = '0%';
+        document.getElementById('avgCoursesPerEvent').textContent = '0';
+        document.getElementById('avgCoursesPerDay').textContent = '0';
+        return;
+    }
+    
+    // 1. Percent of courses assigned to events
     const assignedCount = Object.values(assignments).filter(arr => arr.length > 0).length;
-    document.getElementById('assignedCourses').textContent = assignedCount;
+    const percentAssigned = totalCourses > 0 ? Math.round((assignedCount / totalCourses) * 100) : 0;
+    document.getElementById('percentAssigned').textContent = percentAssigned + '%';
     
-    let configuredCount = 0;
-    for (const eventId in schedule) {
-        for (const courseId in schedule[eventId]) {
-            if (schedule[eventId][courseId].startDay !== null) {
-                configuredCount++;
+    // 2. Percent of event days with at least one course
+    let totalEventDays = 0;
+    let daysWithCourses = 0;
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const totalDays = parseInt(event['Total Days']);
+        totalEventDays += totalDays;
+        
+        for (let day = 1; day <= totalDays; day++) {
+            let hasCourse = false;
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    // Check if placement exists, has days array, and includes this day number
+                    if (placement && placement.days && Array.isArray(placement.days) && placement.days.includes(day)) {
+                        hasCourse = true;
+                        break;
+                    }
+                }
+            }
+            if (hasCourse) {
+                daysWithCourses++;
             }
         }
-    }
-    document.getElementById('configuredCourses').textContent = configuredCount;
+    });
+    
+    const percentDaysFilled = totalEventDays > 0 ? Math.round((daysWithCourses / totalEventDays) * 100) : 0;
+    document.getElementById('percentDaysFilled').textContent = `${percentDaysFilled}% (${daysWithCourses}/${totalEventDays})`;
+    
+    // 3. Average courses per event
+    let totalAssignments = 0;
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        if (schedule[eventId]) {
+            totalAssignments += Object.keys(schedule[eventId]).length;
+        }
+    });
+    const avgPerEvent = events.length > 0 ? (totalAssignments / events.length).toFixed(1) : 0;
+    document.getElementById('avgCoursesPerEvent').textContent = avgPerEvent;
+    
+    // 4. Average courses per day (across all event days)
+    const avgPerDay = totalEventDays > 0 ? (totalAssignments / totalEventDays).toFixed(2) : 0;
+    document.getElementById('avgCoursesPerDay').textContent = avgPerDay;
 }
 
 // Go to configure days view
