@@ -441,12 +441,14 @@
             <div id="gridView" class="view active">
                 <div class="section">
                     <div class="section-title">Step 1: Load Course Data</div>
-                    <label for="coursesFile" class="btn" style="cursor: pointer;">📁 Load Courses CSV</label>
-                    <input type="file" id="coursesFile" accept=".csv" style="display: none;">
-                    <button class="btn btn-secondary" onclick="downloadTemplate()">📥 Download Template</button>
-                    <div style="margin-top: 15px;">
-                        <label for="unavailableFile" class="btn btn-secondary" style="cursor: pointer;">📅 Load Instructor Unavailability (Optional)</label>
+                    <div style="margin-bottom: 15px;">
+                        <label for="coursesFile" class="btn" style="cursor: pointer;">📁 Load Courses CSV</label>
+                        <input type="file" id="coursesFile" accept=".csv" style="display: none;">
+                        <label for="unavailableFile" class="btn" style="cursor: pointer;">📁 Load Instructor Unavailability (Optional)</label>
                         <input type="file" id="unavailableFile" accept=".csv" style="display: none;">
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="downloadTemplate()">📥 Download Course Template</button>
                         <button class="btn btn-secondary" onclick="downloadUnavailabilityTemplate()">📥 Download Unavailability Template</button>
                     </div>
                     <div class="alert alert-info" style="margin-top: 15px;">
