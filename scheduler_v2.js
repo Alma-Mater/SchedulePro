@@ -3,6 +3,8 @@
 let courses = [];
 let events = [];
 let eventDays = [];
+let instructorUnavailable = []; // Raw unavailability data from CSV
+let unavailabilityMap = {}; // Pre-calculated: { 'Instructor-EventID': [blockedDayNumbers] }
 let assignments = {}; // { courseId: [eventIds] }
 let schedule = {}; // { eventId: { courseId: { startDay, days: [] } } }
 let draggedBlock = null;
@@ -12,6 +14,7 @@ let currentTimeline = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadEvents();
     setupFileInput();
+    setupUnavailabilityFileInput();
 });
 
 // Load events and event days from CSV
@@ -103,6 +106,108 @@ function setupFileInput() {
     });
 }
 
+// Setup file input for instructor unavailability
+function setupUnavailabilityFileInput() {
+    const fileInput = document.getElementById('unavailableFile');
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        instructorUnavailable = parseCSV(text);
+        
+        // Validate
+        if (instructorUnavailable.length === 0) {
+            alert('No unavailability data found in the file');
+            return;
+        }
+        
+        const requiredColumns = ['Instructor', 'Unavailable_Start', 'Unavailable_End'];
+        const hasAllColumns = requiredColumns.every(col => col in instructorUnavailable[0]);
+        
+        if (!hasAllColumns) {
+            alert('CSV must have columns: Instructor, Unavailable_Start, Unavailable_End');
+            return;
+        }
+        
+        // Pre-calculate unavailability map
+        calculateUnavailabilityMap();
+        
+        // Re-render grid to show constraints
+        renderAssignmentGrid();
+        
+        alert(`Loaded unavailability for ${instructorUnavailable.length} entries`);
+    });
+}
+
+// Pre-calculate which days instructors are unavailable for each event
+function calculateUnavailabilityMap() {
+    unavailabilityMap = {};
+    
+    // For each instructor's unavailability period
+    instructorUnavailable.forEach(unavail => {
+        const instructor = unavail.Instructor.trim();
+        const startDate = new Date(unavail.Unavailable_Start);
+        const endDate = new Date(unavail.Unavailable_End);
+        
+        // For each event
+        events.forEach(event => {
+            const eventId = event.Event_ID;
+            const eventName = event.Event;
+            const totalDays = parseInt(event['Total Days']);
+            
+            // Get the actual dates for this event
+            const days = eventDays.filter(d => 
+                d.Event.toLowerCase().includes(eventName.toLowerCase().split('-')[0])
+            ).slice(0, totalDays);
+            
+            const blockedDays = [];
+            
+            // Check each day of the event
+            days.forEach((day, index) => {
+                const dayDate = new Date(day.Date);
+                
+                // If this day falls within unavailability period
+                if (dayDate >= startDate && dayDate <= endDate) {
+                    blockedDays.push(index + 1); // Day numbers are 1-indexed
+                }
+            });
+            
+            // Store the blocked days if any
+            if (blockedDays.length > 0) {
+                const key = `${instructor}-${eventId}`;
+                if (!unavailabilityMap[key]) {
+                    unavailabilityMap[key] = [];
+                }
+                unavailabilityMap[key].push(...blockedDays);
+                // Remove duplicates and sort
+                unavailabilityMap[key] = [...new Set(unavailabilityMap[key])].sort((a, b) => a - b);
+            }
+        });
+    });
+    
+    console.log('Unavailability Map:', unavailabilityMap);
+}
+
+// Get blocked days for an instructor at a specific event
+function getBlockedDays(instructor, eventId) {
+    const key = `${instructor}-${eventId}`;
+    return unavailabilityMap[key] || [];
+}
+
+// Check if instructor has enough available days for a course
+function hasEnoughAvailableDays(instructor, eventId, courseDuration) {
+    const event = events.find(e => e.Event_ID === eventId);
+    if (!event) return false;
+    
+    const totalDays = parseInt(event['Total Days']);
+    const blockedDays = getBlockedDays(instructor, eventId);
+    const availableDays = totalDays - blockedDays.length;
+    const daysNeeded = Math.ceil(parseFloat(courseDuration));
+    
+    return availableDays >= daysNeeded;
+}
+
 // Render assignment grid
 function renderAssignmentGrid() {
     const table = document.getElementById('assignmentGrid');
@@ -150,9 +255,40 @@ function renderAssignmentGrid() {
             checkbox.dataset.courseId = course.Course_ID;
             checkbox.dataset.eventId = event.Event_ID;
             
+            // Check unavailability
+            const blockedDays = getBlockedDays(course.Instructor, event.Event_ID);
+            const hasEnough = hasEnoughAvailableDays(course.Instructor, event.Event_ID, course.Duration_Days);
+            
             // Check if already assigned
             if (assignments[course.Course_ID]?.includes(event.Event_ID)) {
                 checkbox.checked = true;
+            }
+            
+            // If instructor doesn't have enough available days, disable checkbox
+            if (!hasEnough && blockedDays.length > 0) {
+                checkbox.disabled = true;
+                td.classList.add('unavailable-cell');
+                const totalDays = parseInt(event['Total Days']);
+                const availableDays = totalDays - blockedDays.length;
+                td.title = `${course.Instructor} unavailable ${blockedDays.length} days (${availableDays} available, needs ${Math.ceil(parseFloat(course.Duration_Days))})`;
+                
+                const icon = document.createElement('span');
+                icon.className = 'unavailable-icon';
+                icon.textContent = '⚠️';
+                icon.title = td.title;
+                td.appendChild(icon);
+            } else if (blockedDays.length > 0) {
+                // Has some blocked days but course still fits
+                td.classList.add('unavailable-cell');
+                const totalDays = parseInt(event['Total Days']);
+                const availableDays = totalDays - blockedDays.length;
+                td.title = `${course.Instructor} unavailable days ${blockedDays.join(', ')} (${availableDays} days available)`;
+                
+                const icon = document.createElement('span');
+                icon.className = 'unavailable-icon';
+                icon.textContent = 'ℹ️';
+                icon.title = td.title;
+                td.appendChild(icon);
             }
             
             checkbox.addEventListener('change', (e) => {
@@ -284,6 +420,9 @@ function renderCourseSwimlane(course, eventId, totalDays) {
     const duration = parseFloat(course.Duration_Days);
     const daysNeeded = Math.ceil(duration);
     
+    // Get blocked days for this instructor at this event
+    const blockedDays = getBlockedDays(course.Instructor, eventId);
+    
     // Get current placement if exists
     const placement = schedule[eventId]?.[courseId];
     const startDay = placement?.startDay;
@@ -292,14 +431,21 @@ function renderCourseSwimlane(course, eventId, totalDays) {
     const blockWidth = (100 / totalDays) * daysNeeded;
     const blockLeft = startDay ? ((startDay - 1) / totalDays) * 100 : null;
     
+    // Generate unavailability warning if any
+    let unavailWarning = '';
+    if (blockedDays.length > 0) {
+        unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
+    }
+    
     return `
         <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}">
             <div class="course-info-sidebar">
                 <div class="course-info-name">${course.Course_Name}</div>
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
+                ${unavailWarning}
             </div>
-            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-total-days="${totalDays}">
+            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
                 <div class="course-block ${startDay ? '' : 'unplaced'}" 
                      data-course-id="${courseId}"
                      data-event-id="${eventId}"
@@ -332,6 +478,24 @@ function setupDragAndDrop() {
         timeline.addEventListener('dragover', handleTimelineDragOver);
         timeline.addEventListener('dragleave', handleTimelineDragLeave);
         timeline.addEventListener('drop', handleTimelineDrop);
+        
+        // Mark unavailable day slots
+        const instructor = timeline.dataset.instructor;
+        const eventId = timeline.dataset.eventId;
+        const blockedDaysStr = timeline.dataset.blockedDays;
+        
+        if (blockedDaysStr && blockedDaysStr.length > 0) {
+            const blockedDays = blockedDaysStr.split(',').map(d => parseInt(d));
+            const swimlane = timeline.closest('.event-swimlane');
+            const daySlots = swimlane.querySelectorAll('.day-timeline .day-slot');
+            
+            daySlots.forEach(slot => {
+                const dayNum = parseInt(slot.dataset.dayNum);
+                if (blockedDays.includes(dayNum)) {
+                    slot.classList.add('unavailable');
+                }
+            });
+        }
     });
 }
 
@@ -416,19 +580,31 @@ function handleTimelineDrop(e) {
     const snapDay = calculateSnapPosition(targetDay, draggedBlock.daysNeeded, totalDays);
     
     if (snapDay !== null) {
+        // Get blocked days from timeline
+        const blockedDaysStr = timeline.dataset.blockedDays || '';
+        const blockedDays = blockedDaysStr.length > 0 ? blockedDaysStr.split(',').map(d => parseInt(d)) : [];
+        
+        // Check if any of the course days overlap with blocked days
+        const courseDays = [];
+        for (let i = snapDay; i < snapDay + draggedBlock.daysNeeded; i++) {
+            courseDays.push(i);
+        }
+        
+        const hasConflict = courseDays.some(day => blockedDays.includes(day));
+        
+        if (hasConflict) {
+            alert(`Cannot place course on these days. Instructor unavailable on: ${blockedDays.filter(d => courseDays.includes(d)).join(', ')}`);
+            return;
+        }
+        
         // Save placement
         if (!schedule[draggedBlock.eventId]) {
             schedule[draggedBlock.eventId] = {};
         }
         
-        const days = [];
-        for (let i = snapDay; i < snapDay + draggedBlock.daysNeeded; i++) {
-            days.push(i);
-        }
-        
         schedule[draggedBlock.eventId][draggedBlock.courseId] = {
             startDay: snapDay,
-            days: days
+            days: courseDays
         };
         
         // Re-render this swimlane
@@ -610,6 +786,18 @@ C004,Diana,Web Design,3.5
 C005,Edward,Public Speaking,1`;
     
     downloadFile(template, 'courses_template.csv', 'text/csv');
+}
+
+// Download unavailability template
+function downloadUnavailabilityTemplate() {
+    const template = `Instructor,Unavailable_Start,Unavailable_End
+Alfred,2026-06-15,2026-06-18
+Betty,2026-02-23,2026-02-24
+Charlie,2026-03-16,2026-03-19
+Diana,2026-05-11,2026-05-14
+Edward,2026-07-20,2026-07-23`;
+    
+    downloadFile(template, 'instructor_unavailable_template.csv', 'text/csv');
 }
 
 // Helper function to download a file
