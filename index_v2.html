@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchedulePro - Event Course Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '■';
+            color: #764ba2;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .alert-info {
+            background: #cfe2ff;
+            color: #084298;
+            border: 1px solid #b6d4fe;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Grid View Styles */
+        .grid-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .assignment-grid {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9em;
+        }
+
+        .assignment-grid th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+
+        .assignment-grid th.course-header {
+            text-align: left;
+            min-width: 250px;
+        }
+
+        .assignment-grid th.event-header {
+            min-width: 100px;
+            writing-mode: horizontal-tb;
+        }
+
+        .assignment-grid td {
+            border: 1px solid #dee2e6;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .assignment-grid td.course-info {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .course-name-cell {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .course-duration-cell {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
+        .assignment-grid input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Configure Days View Styles */
+        .event-swimlane {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .event-swimlane-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .event-swimlane-body {
+            padding: 20px;
+        }
+
+        .day-timeline {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .day-slot {
+            flex: 1;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px 5px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .day-slot.occupied {
+            background: #e7f3ff;
+        }
+
+        .day-label {
+            font-size: 0.9em;
+        }
+
+        .day-date {
+            font-size: 0.75em;
+            color: #6c757d;
+            margin-top: 3px;
+        }
+
+        .course-swimlane {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .course-info-sidebar {
+            min-width: 200px;
+            max-width: 200px;
+        }
+
+        .course-info-name {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+
+        .course-info-instructor {
+            color: #495057;
+            font-size: 0.9em;
+        }
+
+        .course-info-duration {
+            color: #764ba2;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        .course-timeline {
+            flex: 1;
+            position: relative;
+            min-height: 60px;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .course-block {
+            position: absolute;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: move;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.85em;
+            z-index: 5;
+        }
+
+        .course-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .course-block.dragging {
+            opacity: 0.5;
+            z-index: 10;
+        }
+
+        .course-block.unplaced {
+            position: relative;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .course-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .drop-indicator {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(102, 126, 234, 0.3);
+            border: 2px dashed #667eea;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .assignment-grid {
+                font-size: 0.75em;
+            }
+
+            .course-swimlane {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .course-info-sidebar {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 SchedulePro</h1>
+            <p>Easy-to-Use Course Scheduling for Event Planners</p>
+        </div>
+
+        <div class="main-content">
+            <!-- View 1: Grid Selection -->
+            <div id="gridView" class="view active">
+                <div class="section">
+                    <div class="section-title">Step 1: Load Course Data</div>
+                    <label for="coursesFile" class="btn" style="cursor: pointer;">📁 Load Courses CSV</label>
+                    <input type="file" id="coursesFile" accept=".csv" style="display: none;">
+                    <button class="btn btn-secondary" onclick="downloadTemplate()">📥 Download Template</button>
+                    <div class="alert alert-info" style="margin-top: 15px;">
+                        <strong>Tip:</strong> Load your courses CSV file with columns: Course_ID, Instructor, Course_Name, Duration_Days
+                    </div>
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat">
+                        <div class="stat-value" id="totalCourses">0</div>
+                        <div class="stat-label">Total Courses</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="assignedCourses">0</div>
+                        <div class="stat-label">Assigned to Events</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="configuredCourses">0</div>
+                        <div class="stat-label">Days Configured</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Step 2: Assign Courses to Events</div>
+                    <div class="alert alert-info">
+                        <strong>Instructions:</strong> Check the boxes to assign each course to one or more events. The same course can be assigned to multiple events.
+                    </div>
+                    <div class="grid-table-container">
+                        <table class="assignment-grid" id="assignmentGrid">
+                            <thead>
+                                <tr>
+                                    <th class="course-header">Course</th>
+                                    <!-- Event columns will be added by JS -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be added by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-success" onclick="goToConfigureDays()" id="configureDaysBtn" disabled>
+                            ⚙️ Configure Days
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section" style="text-align: center;">
+                    <div class="section-title">Step 3: Export</div>
+                    <button class="btn btn-success" onclick="exportToExcel()">📊 Export to Excel</button>
+                    <button class="btn btn-secondary" onclick="saveSchedule()">💾 Save Schedule (JSON)</button>
+                    <button class="btn btn-secondary" onclick="loadSchedule()">📂 Load Schedule (JSON)</button>
+                </div>
+            </div>
+
+            <!-- View 2: Configure Days -->
+            <div id="configureDaysView" class="view">
+                <div class="section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="section-title" style="margin: 0;">Configure Days for Each Event</div>
+                        <button class="btn btn-secondary" onclick="backToGrid()">⬅️ Back to Grid</button>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Instructions:</strong> Drag each course block to the day slots where it should start. Blocks will snap to valid positions based on course duration.
+                    </div>
+                    <div id="swimlanesContainer">
+                        <!-- Swimlanes will be added by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scheduler_v2.js"></script>
+</body>
+</html>
