@@ -591,7 +591,12 @@
                 <div class="section">
                     <div class="collapsible-header" onclick="toggleSection('step2Content')">
                         <div class="section-title">Step 2: Assign Courses to Events</div>
-                        <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-success btn-small" onclick="goToConfigureDays()" id="configureDaysBtn" disabled>
+                                ⚙️ Configure Days
+                            </button>
+                            <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
+                        </div>
                     </div>
                     <div id="step2Content" class="collapsible-content">
                         <div class="alert alert-info">
@@ -610,11 +615,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                    <div class="margin-top-20 text-center">
-                        <button class="btn btn-success" onclick="goToConfigureDays()" id="configureDaysBtn" disabled>
-                            ⚙️ Configure Days
-                        </button>
                     </div>
                 </div>
 

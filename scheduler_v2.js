@@ -424,6 +424,14 @@ function backToGrid() {
 // Render swimlanes for day configuration
 function renderSwimlanes() {
     const container = document.getElementById('swimlanesContainer');
+    
+    // Save current expanded/collapsed state
+    const expandedState = {};
+    document.querySelectorAll('.event-swimlane-body').forEach(body => {
+        const eventId = body.id.replace('body-', '');
+        expandedState[eventId] = !body.classList.contains('collapsed');
+    });
+    
     container.innerHTML = '';
     
     events.forEach(event => {
@@ -446,12 +454,17 @@ function renderSwimlanes() {
         swimlane.className = 'event-swimlane';
         swimlane.dataset.eventId = eventId;
         
+        // Determine if this event should be expanded (restore previous state or default collapsed)
+        const isExpanded = expandedState[eventId] || false;
+        const bodyClass = isExpanded ? 'event-swimlane-body' : 'event-swimlane-body collapsed';
+        const toggleText = isExpanded ? '▼ Collapse' : '▶ Expand';
+        
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
                 <span>${eventName} (${totalDays} days)</span>
-                <span id="toggle-${eventId}">▶ Expand</span>
+                <span id="toggle-${eventId}">${toggleText}</span>
             </div>
-            <div class="event-swimlane-body collapsed" id="body-${eventId}">
+            <div class="${bodyClass}" id="body-${eventId}">
                 <div class="day-timeline" data-event-id="${eventId}">
                     ${days.map((day, index) => `
                         <div class="day-slot" data-day-num="${day.Day_Number}">
