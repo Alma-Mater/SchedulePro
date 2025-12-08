@@ -446,14 +446,18 @@
                         <input type="file" id="coursesFile" accept=".csv" style="display: none;">
                         <label for="unavailableFile" class="btn" style="cursor: pointer;">📁 Load Instructor Unavailability (Optional)</label>
                         <input type="file" id="unavailableFile" accept=".csv" style="display: none;">
+                        <label for="scheduleFile" class="btn btn-success" style="cursor: pointer;">📅 Import Existing Schedule</label>
+                        <input type="file" id="scheduleFile" accept=".csv" style="display: none;">
                     </div>
                     <div>
                         <button class="btn btn-secondary" onclick="downloadTemplate()">📥 Download Course Template</button>
                         <button class="btn btn-secondary" onclick="downloadUnavailabilityTemplate()">📥 Download Unavailability Template</button>
+                        <button class="btn btn-secondary" onclick="downloadScheduleTemplate()">📥 Download Schedule Template</button>
                     </div>
                     <div class="alert alert-info" style="margin-top: 15px;">
-                        <strong>Tip:</strong> Load your courses CSV file with columns: Course_ID, Instructor, Course_Name, Duration_Days<br>
-                        <strong>Optional:</strong> Load instructor unavailability CSV with: Instructor, Unavailable_Start, Unavailable_End
+                        <strong>Tip:</strong> Load your courses CSV file with columns: Course_ID, Instructor, Course_Name, Duration_Days, Topic<br>
+                        <strong>Optional:</strong> Load instructor unavailability CSV with: Instructor, Unavailable_Start, Unavailable_End<br>
+                        <strong>Import Schedule:</strong> Upload existing schedule CSV with: Course_ID, Duration_Days, First_Day, Last_Day (dates as YYYY-MM-DD)
                     </div>
                 </div>
 

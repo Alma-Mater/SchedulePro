@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEvents();
     setupFileInput();
     setupUnavailabilityFileInput();
+    setupScheduleFileInput();
 });
 
 // Load events and event days from CSV
@@ -93,11 +94,11 @@ function setupFileInput() {
         }
         
         // Check for required columns
-        const requiredColumns = ['Course_ID', 'Instructor', 'Course_Name', 'Duration_Days'];
+        const requiredColumns = ['Course_ID', 'Instructor', 'Course_Name', 'Duration_Days', 'Topic'];
         const hasAllColumns = requiredColumns.every(col => col in courses[0]);
         
         if (!hasAllColumns) {
-            alert('CSV must have columns: Course_ID, Instructor, Course_Name, Duration_Days');
+            alert('CSV must have columns: Course_ID, Instructor, Course_Name, Duration_Days, Topic');
             return;
         }
         
@@ -822,14 +823,217 @@ function loadSchedule() {
     input.click();
 }
 
+// Setup schedule file input for importing existing schedules
+function setupScheduleFileInput() {
+    const fileInput = document.getElementById('scheduleFile');
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        const scheduleData = parseCSV(text);
+        
+        // Validate
+        if (scheduleData.length === 0) {
+            alert('No schedule data found in the file');
+            return;
+        }
+        
+        const requiredColumns = ['Course_ID', 'Duration_Days', 'First_Day', 'Last_Day'];
+        const hasAllColumns = requiredColumns.every(col => col in scheduleData[0]);
+        
+        if (!hasAllColumns) {
+            alert('CSV must have columns: Course_ID, Duration_Days, First_Day, Last_Day');
+            return;
+        }
+        
+        // Check if courses are loaded
+        if (courses.length === 0) {
+            alert('Please load courses CSV first before importing schedule');
+            return;
+        }
+        
+        // Process schedule import
+        importSchedule(scheduleData);
+    });
+}
+
+// Import schedule and auto-detect events based on dates
+function importSchedule(scheduleData) {
+    const errors = [];
+    const imported = [];
+    let successCount = 0;
+    
+    // Track unique courses to ensure they exist in courses list
+    const courseIds = new Set(courses.map(c => c.Course_ID));
+    
+    scheduleData.forEach((row, index) => {
+        const courseId = row.Course_ID.trim();
+        const durationDays = parseFloat(row.Duration_Days);
+        const firstDay = row.First_Day.trim();
+        const lastDay = row.Last_Day.trim();
+        
+        // Validate course exists
+        if (!courseIds.has(courseId)) {
+            errors.push({
+                Row: index + 2,
+                Course_ID: courseId,
+                First_Day: firstDay,
+                Last_Day: lastDay,
+                Error: 'Course_ID not found in courses list'
+            });
+            return;
+        }
+        
+        // Parse dates
+        const startDate = new Date(firstDay);
+        const endDate = new Date(lastDay);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            errors.push({
+                Row: index + 2,
+                Course_ID: courseId,
+                First_Day: firstDay,
+                Last_Day: lastDay,
+                Error: 'Invalid date format (use YYYY-MM-DD)'
+            });
+            return;
+        }
+        
+        // Find matching event and day numbers
+        const match = findEventForDateRange(startDate, endDate);
+        
+        if (!match) {
+            errors.push({
+                Row: index + 2,
+                Course_ID: courseId,
+                First_Day: firstDay,
+                Last_Day: lastDay,
+                Error: 'Dates do not match any event in event_days.csv'
+            });
+            return;
+        }
+        
+        // Add to assignments and schedule
+        if (!assignments[courseId]) {
+            assignments[courseId] = [];
+        }
+        if (!assignments[courseId].includes(match.eventId)) {
+            assignments[courseId].push(match.eventId);
+        }
+        
+        if (!schedule[match.eventId]) {
+            schedule[match.eventId] = {};
+        }
+        
+        schedule[match.eventId][courseId] = {
+            startDay: match.startDayNumber,
+            days: match.dayNumbers
+        };
+        
+        successCount++;
+        imported.push({
+            Course_ID: courseId,
+            Event: match.eventName,
+            Days: `${match.startDayNumber}-${match.endDayNumber}`
+        });
+    });
+    
+    // Update UI
+    renderAssignmentGrid();
+    updateStats();
+    updateConfigureDaysButton();
+    
+    // Show results
+    let message = `Successfully imported ${successCount} course assignment(s)`;
+    
+    if (errors.length > 0) {
+        message += `\n\n${errors.length} error(s) found. Download error report?`;
+        if (confirm(message)) {
+            downloadErrorReport(errors);
+        }
+    } else {
+        alert(message);
+    }
+}
+
+// Find which event contains the given date range
+function findEventForDateRange(startDate, endDate) {
+    for (const event of events) {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        
+        // Get all days for this event
+        const days = eventDays.filter(d => d.Event_ID === eventId)
+                             .sort((a, b) => a.Day_Number - b.Day_Number);
+        
+        if (days.length === 0) continue;
+        
+        // Check if date range falls within this event
+        const eventStart = new Date(days[0].Day_Date);
+        const eventEnd = new Date(days[days.length - 1].Day_Date);
+        
+        if (startDate >= eventStart && endDate <= eventEnd) {
+            // Find day numbers
+            const dayNumbers = [];
+            const startDayNumber = days.find(d => {
+                const dayDate = new Date(d.Day_Date);
+                return dayDate.getTime() === startDate.getTime();
+            })?.Day_Number;
+            
+            const endDayNumber = days.find(d => {
+                const dayDate = new Date(d.Day_Date);
+                return dayDate.getTime() === endDate.getTime();
+            })?.Day_Number;
+            
+            if (startDayNumber && endDayNumber) {
+                for (let i = parseInt(startDayNumber); i <= parseInt(endDayNumber); i++) {
+                    dayNumbers.push(i);
+                }
+                
+                return {
+                    eventId,
+                    eventName,
+                    startDayNumber: parseInt(startDayNumber),
+                    endDayNumber: parseInt(endDayNumber),
+                    dayNumbers
+                };
+            }
+        }
+    }
+    
+    return null;
+}
+
+// Download error report CSV
+function downloadErrorReport(errors) {
+    const headers = 'Row,Course_ID,First_Day,Last_Day,Error\n';
+    const rows = errors.map(e => 
+        `${e.Row},${e.Course_ID},${e.First_Day},${e.Last_Day},"${e.Error}"`
+    ).join('\n');
+    
+    downloadFile(headers + rows, 'schedule_import_errors.csv', 'text/csv');
+}
+
+// Download schedule template
+function downloadScheduleTemplate() {
+    const template = `Course_ID,Duration_Days,First_Day,Last_Day
+C001,3,2026-01-26,2026-01-28
+C001,3,2026-02-23,2026-02-25
+C002,2,2026-03-16,2026-03-17
+C003,4,2026-04-13,2026-04-16`;
+    
+    downloadFile(template, 'schedule_template.csv', 'text/csv');
+}
+
 // Download template
 function downloadTemplate() {
-    const template = `Course_ID,Instructor,Course_Name,Duration_Days
-C001,Alfred,Mapmaking,3
-C002,Betty,Cooking Basics,2
-C003,Charlie,Advanced Photography,4
-C004,Diana,Web Design,3.5
-C005,Edward,Public Speaking,1`;
+    const template = `Course_ID,Instructor,Course_Name,Duration_Days,Topic
+C001,Alfred,Mapmaking,3,Geography
+C002,Betty,Cooking Basics,2,Culinary Arts
+C003,Charlie,Advanced Photography,4,Visual Arts
+C004,Diana,Web Design,3.5,Technology
+C005,Edward,Public Speaking,1,Communication`;
     
     downloadFile(template, 'courses_template.csv', 'text/csv');
 }
