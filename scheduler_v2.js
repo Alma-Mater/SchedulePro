@@ -1063,6 +1063,18 @@ Edward,2026-07-20,2026-07-23`;
     downloadFile(template, 'instructor_unavailable_template.csv', 'text/csv');
 }
 
+// Toggle collapsible section
+function toggleSection(contentId) {
+    const content = document.getElementById(contentId);
+    const toggle = document.getElementById(contentId.replace('Content', 'Toggle'));
+    
+    const isCollapsed = content.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+    
+    // Update text
+    toggle.textContent = isCollapsed ? '▶ Expand Section' : '▼ Collapse Section';
+}
+
 // Helper function to download a file
 function downloadFile(content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });

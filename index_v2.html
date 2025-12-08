@@ -230,6 +230,40 @@
             margin-top: 5px;
         }
 
+        /* Collapsible Section */
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-toggle {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .collapse-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 5000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
         /* Configure Days View Styles */
         .event-swimlane {
             background: white;
@@ -521,22 +555,27 @@
                 </div>
 
                 <div class="section">
-                    <div class="section-title">Step 2: Assign Courses to Events</div>
-                    <div class="alert alert-info">
-                        <strong>Instructions:</strong> Check the boxes to assign each course to one or more events. The same course can be assigned to multiple events.
+                    <div class="collapsible-header" onclick="toggleSection('step2Content')">
+                        <div class="section-title">Step 2: Assign Courses to Events</div>
+                        <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
                     </div>
-                    <div class="grid-table-container">
-                        <table class="assignment-grid" id="assignmentGrid">
-                            <thead>
-                                <tr>
-                                    <th class="course-header">Course</th>
-                                    <!-- Event columns will be added by JS -->
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Rows will be added by JS -->
-                            </tbody>
-                        </table>
+                    <div id="step2Content" class="collapsible-content">
+                        <div class="alert alert-info">
+                            <strong>Instructions:</strong> Check the boxes to assign each course to one or more events. The same course can be assigned to multiple events.
+                        </div>
+                        <div class="grid-table-container">
+                            <table class="assignment-grid" id="assignmentGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="course-header">Course</th>
+                                        <!-- Event columns will be added by JS -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rows will be added by JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="margin-top-20 text-center">
                         <button class="btn btn-success" onclick="goToConfigureDays()" id="configureDaysBtn" disabled>
