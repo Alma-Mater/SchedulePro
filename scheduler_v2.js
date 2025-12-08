@@ -104,6 +104,9 @@ function setupFileInput() {
         
         renderAssignmentGrid();
         updateStats();
+        
+        // Reset file input
+        fileInput.value = '';
     });
 }
 
@@ -138,6 +141,9 @@ function setupUnavailabilityFileInput() {
         renderAssignmentGrid();
         
         alert(`Loaded unavailability for ${instructorUnavailable.length} entries`);
+        
+        // Reset file input
+        fileInput.value = '';
     });
 }
 
@@ -155,7 +161,7 @@ function calculateUnavailabilityMap() {
         events.forEach(event => {
             const eventId = event.Event_ID;
             const eventName = event.Event;
-            const totalDays = parseInt(event['Total Days']);
+            const totalDays = parseInt(event['Total_Days']);
             
             // Get the actual dates for this event
             const days = eventDays.filter(d => 
@@ -201,7 +207,7 @@ function hasEnoughAvailableDays(instructor, eventId, courseDuration) {
     const event = events.find(e => e.Event_ID === eventId);
     if (!event) return false;
     
-    const totalDays = parseInt(event['Total Days']);
+    const totalDays = parseInt(event['Total_Days']);
     const blockedDays = getBlockedDays(instructor, eventId);
     const availableDays = totalDays - blockedDays.length;
     const daysNeeded = Math.ceil(parseFloat(courseDuration));
@@ -215,6 +221,8 @@ function renderAssignmentGrid() {
     const thead = table.querySelector('thead tr');
     const tbody = table.querySelector('tbody');
     
+    console.log('renderAssignmentGrid called - events:', events.length, 'courses:', courses.length);
+    
     // Clear existing content except first header
     while (thead.children.length > 1) {
         thead.removeChild(thead.lastChild);
@@ -222,6 +230,7 @@ function renderAssignmentGrid() {
     tbody.innerHTML = '';
     
     if (events.length === 0 || courses.length === 0) {
+        console.warn('Grid render stopped - missing data');
         tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 40px;">Load courses and events to begin</td></tr>';
         return;
     }
@@ -231,7 +240,7 @@ function renderAssignmentGrid() {
         const th = document.createElement('th');
         th.className = 'event-header';
         th.textContent = event.Event;
-        th.title = `${event.Event} (${event['Total Days']} days)`;
+        th.title = `${event.Event} (${event['Total_Days']} days)`;
         thead.appendChild(th);
     });
     
@@ -269,7 +278,7 @@ function renderAssignmentGrid() {
             if (!hasEnough && blockedDays.length > 0) {
                 checkbox.disabled = true;
                 td.classList.add('unavailable-cell');
-                const totalDays = parseInt(event['Total Days']);
+                const totalDays = parseInt(event['Total_Days']);
                 const availableDays = totalDays - blockedDays.length;
                 td.title = `${course.Instructor} unavailable ${blockedDays.length} days (${availableDays} available, needs ${Math.ceil(parseFloat(course.Duration_Days))})`;
                 
@@ -281,7 +290,7 @@ function renderAssignmentGrid() {
             } else if (blockedDays.length > 0) {
                 // Has some blocked days but course still fits
                 td.classList.add('unavailable-cell');
-                const totalDays = parseInt(event['Total Days']);
+                const totalDays = parseInt(event['Total_Days']);
                 const availableDays = totalDays - blockedDays.length;
                 td.title = `${course.Instructor} unavailable days ${blockedDays.join(', ')} (${availableDays} days available)`;
                 
@@ -357,7 +366,7 @@ function updateStats() {
     
     events.forEach(event => {
         const eventId = event.Event_ID;
-        const totalDays = parseInt(event['Total Days']);
+        const totalDays = parseInt(event['Total_Days']);
         totalEventDays += totalDays;
         
         for (let day = 1; day <= totalDays; day++) {
@@ -418,7 +427,7 @@ function renderSwimlanes() {
     events.forEach(event => {
         const eventId = event.Event_ID;
         const eventName = event.Event;
-        const totalDays = parseInt(event['Total Days']);
+        const totalDays = parseInt(event['Total_Days']);
         
         // Get courses assigned to this event
         const assignedCourses = courses.filter(course => 
@@ -428,9 +437,7 @@ function renderSwimlanes() {
         if (assignedCourses.length === 0) return;
         
         // Get days for this event
-        const days = eventDays.filter(d => 
-            d.Event.toLowerCase().includes(eventName.toLowerCase().split('-')[0])
-        ).slice(0, totalDays);
+        const days = eventDays.filter(d => d.Event_ID === eventId);
         
         // Create swimlane
         const swimlane = document.createElement('div');
@@ -444,9 +451,9 @@ function renderSwimlanes() {
             <div class="event-swimlane-body">
                 <div class="day-timeline" data-event-id="${eventId}">
                     ${days.map((day, index) => `
-                        <div class="day-slot" data-day-num="${index + 1}">
-                            <div class="day-label">Day ${index + 1}</div>
-                            <div class="day-date">${day['Date text'] || ''}</div>
+                        <div class="day-slot" data-day-num="${day.Day_Number}">
+                            <div class="day-label">Day ${day.Day_Number}</div>
+                            <div class="day-date">${day.Day_Date || ''}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -498,7 +505,7 @@ function renderCourseSwimlane(course, eventId, totalDays) {
                      data-event-id="${eventId}"
                      data-days-needed="${daysNeeded}"
                      draggable="true"
-                     style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%;` : ''}">
+                     style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 40px; line-height: 40px;` : ''}">
                     ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}` : 'Drag to timeline'}
                 </div>
             </div>
@@ -734,7 +741,7 @@ function exportToExcel() {
     events.forEach(event => {
         const eventId = event.Event_ID;
         const eventName = event.Event;
-        const totalDays = parseInt(event['Total Days']);
+        const totalDays = parseInt(event['Total_Days']);
         
         // Get days for this event
         const days = eventDays.filter(d => 
@@ -759,10 +766,10 @@ function exportToExcel() {
             }
             
             if (coursesOnDay.length === 0) {
-                csv += `${eventId},${eventName},${dayNum},${day['Date text'] || ''},,,,, No\n`;
+                csv += `${eventId},${eventName},${dayNum},${day.Day_Date || ''},,,,, No\n`;
             } else {
                 coursesOnDay.forEach(course => {
-                    csv += `${eventId},${eventName},${dayNum},${day['Date text'] || ''},${course.Course_ID},${course.Instructor},${course.Course_Name},${course.Duration_Days},Yes\n`;
+                    csv += `${eventId},${eventName},${dayNum},${day.Day_Date || ''},${course.Course_ID},${course.Instructor},${course.Course_Name},${course.Duration_Days},Yes\n`;
                 });
             }
         });
@@ -855,6 +862,9 @@ function setupScheduleFileInput() {
         
         // Process schedule import
         importSchedule(scheduleData);
+        
+        // Reset file input to allow re-uploading the same file
+        fileInput.value = '';
     });
 }
 

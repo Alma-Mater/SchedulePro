@@ -1,0 +1,9 @@
+Row,Course_ID,First_Day,Last_Day,Error
+119,1482D,2026-04-27,2026-04-28,"Dates do not match any event in event_days.csv"
+173,1882D,2026-07-28,2026-07-29,"Dates do not match any event in event_days.csv"
+186,2002D,2026-04-27,2026-04-28,"Dates do not match any event in event_days.csv"
+188,2012D,2026-04-27,2026-04-28,"Dates do not match any event in event_days.csv"
+190,2022D,2026-04-27,2026-04-28,"Dates do not match any event in event_days.csv"
+198,2072D,2026-07-28,2026-07-29,"Dates do not match any event in event_days.csv"
+209,TBD,2026-07-28,2026-07-28,"Dates do not match any event in event_days.csv"
+210,TBD,2026-07-29,2026-07-29,"Dates do not match any event in event_days.csv"
