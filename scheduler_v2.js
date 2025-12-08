@@ -447,10 +447,11 @@ function renderSwimlanes() {
         swimlane.dataset.eventId = eventId;
         
         swimlane.innerHTML = `
-            <div class="event-swimlane-header">
-                ${eventName} (${totalDays} days)
+            <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
+                <span>${eventName} (${totalDays} days)</span>
+                <span id="toggle-${eventId}">▶ Expand</span>
             </div>
-            <div class="event-swimlane-body">
+            <div class="event-swimlane-body collapsed" id="body-${eventId}">
                 <div class="day-timeline" data-event-id="${eventId}">
                     ${days.map((day, index) => `
                         <div class="day-slot" data-day-num="${day.Day_Number}">
@@ -1145,6 +1146,15 @@ function toggleSection(contentId) {
     
     // Update text
     toggle.textContent = isCollapsed ? '▶ Expand Section' : '▼ Collapse Section';
+}
+
+// Toggle event swimlane
+function toggleEventSwimlane(eventId) {
+    const body = document.getElementById(`body-${eventId}`);
+    const toggle = document.getElementById(`toggle-${eventId}`);
+    
+    const isCollapsed = body.classList.toggle('collapsed');
+    toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
 }
 
 // Helper function to download a file
