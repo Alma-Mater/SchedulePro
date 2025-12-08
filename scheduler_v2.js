@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFileInput();
     setupUnavailabilityFileInput();
     setupScheduleFileInput();
+    setupEventsFileInput();
+    setupEventDaysFileInput();
 });
 
 // Load events and event days from CSV
@@ -828,6 +830,76 @@ function loadSchedule() {
     };
     
     input.click();
+}
+
+// Setup events file input
+function setupEventsFileInput() {
+    const fileInput = document.getElementById('eventsFile');
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        const newEvents = parseCSV(text);
+        
+        if (newEvents.length === 0) {
+            alert('No events found in the file');
+            return;
+        }
+        
+        const requiredColumns = ['Event_ID', 'Event', 'Total_Days'];
+        const hasAllColumns = requiredColumns.every(col => col in newEvents[0]);
+        
+        if (!hasAllColumns) {
+            alert('CSV must have columns: Event_ID, Event, Total_Days');
+            return;
+        }
+        
+        events = newEvents;
+        renderAssignmentGrid();
+        updateStats();
+        
+        alert(`Loaded ${events.length} events`);
+        fileInput.value = '';
+    });
+}
+
+// Setup event days file input
+function setupEventDaysFileInput() {
+    const fileInput = document.getElementById('eventDaysFile');
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        const newEventDays = parseCSV(text);
+        
+        if (newEventDays.length === 0) {
+            alert('No event days found in the file');
+            return;
+        }
+        
+        const requiredColumns = ['Event_ID', 'Event_Name', 'Day_Number', 'Day_Date'];
+        const hasAllColumns = requiredColumns.every(col => col in newEventDays[0]);
+        
+        if (!hasAllColumns) {
+            alert('CSV must have columns: Event_ID, Event_Name, Day_Number, Day_Date');
+            return;
+        }
+        
+        eventDays = newEventDays;
+        
+        // Recalculate unavailability if it was already loaded
+        if (instructorUnavailable.length > 0) {
+            calculateUnavailabilityMap();
+        }
+        
+        renderAssignmentGrid();
+        updateStats();
+        
+        alert(`Loaded ${eventDays.length} event days`);
+        fileInput.value = '';
+    });
 }
 
 // Setup schedule file input for importing existing schedules
