@@ -1022,7 +1022,10 @@ function downloadErrorReport(errors) {
         `${e.Row},${e.Course_ID},${e.First_Day},${e.Last_Day},"${e.Error}"`
     ).join('\n');
     
-    downloadFile(headers + rows, 'schedule_import_errors.csv', 'text/csv');
+    // Use setTimeout to ensure download doesn't interfere with page state
+    setTimeout(() => {
+        downloadFile(headers + rows, 'schedule_import_errors.csv', 'text/csv');
+    }, 100);
 }
 
 // Download schedule template
