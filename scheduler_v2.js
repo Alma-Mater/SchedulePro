@@ -10,8 +10,14 @@ let schedule = {}; // { eventId: { courseId: { startDay, days: [] } } }
 let draggedBlock = null;
 let currentTimeline = null;
 
+// Change logging
+let changeLog = [];
+let uploadsLog = [];
+let errorsLog = [];
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    loadLogs();
     loadEvents();
     setupFileInput();
     setupUnavailabilityFileInput();
@@ -19,6 +25,110 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventsFileInput();
     setupEventDaysFileInput();
 });
+
+// Load logs from localStorage
+function loadLogs() {
+    const savedChangelog = localStorage.getItem('schedulepro_changelog');
+    const savedUploads = localStorage.getItem('schedulepro_uploads');
+    const savedErrors = localStorage.getItem('schedulepro_errors');
+    
+    if (savedChangelog) changeLog = JSON.parse(savedChangelog);
+    if (savedUploads) uploadsLog = JSON.parse(savedUploads);
+    if (savedErrors) errorsLog = JSON.parse(savedErrors);
+}
+
+// Save logs to localStorage
+function saveLogs() {
+    localStorage.setItem('schedulepro_changelog', JSON.stringify(changeLog));
+    localStorage.setItem('schedulepro_uploads', JSON.stringify(uploadsLog));
+    localStorage.setItem('schedulepro_errors', JSON.stringify(errorsLog));
+}
+
+// Get current timestamp
+function getTimestamp() {
+    const now = new Date();
+    return now.toLocaleString('en-US', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    });
+}
+
+// Get date range for a course placement
+function getDateRange(eventId, dayNumbers) {
+    if (!dayNumbers || dayNumbers.length === 0) return { firstDay: '', lastDay: '' };
+    
+    const days = eventDays.filter(d => d.Event_ID === eventId);
+    const firstDayNum = Math.min(...dayNumbers);
+    const lastDayNum = Math.max(...dayNumbers);
+    
+    const firstDay = days.find(d => parseInt(d.Day_Number) === firstDayNum)?.Day_Date || '';
+    const lastDay = days.find(d => parseInt(d.Day_Number) === lastDayNum)?.Day_Date || '';
+    
+    return { firstDay, lastDay };
+}
+
+// Log a change action
+function logChange(action, courseId, eventId, newDays, oldDays = null, notes = '') {
+    const course = courses.find(c => c.Course_ID === courseId);
+    if (!course) return;
+    
+    const newDates = getDateRange(eventId, newDays);
+    const oldDates = oldDays ? getDateRange(eventId, oldDays) : { firstDay: '', lastDay: '' };
+    
+    const entry = {
+        timestamp: getTimestamp(),
+        action: action,
+        courseId: courseId,
+        courseTitle: course.Course_Name,
+        instructor: course.Instructor,
+        eventId: eventId || '',
+        firstDay: newDates.firstDay,
+        lastDay: newDates.lastDay,
+        oldFirstDay: oldDates.firstDay,
+        oldLastDay: oldDates.lastDay,
+        notes: notes,
+        csiTicket: ''
+    };
+    
+    changeLog.push(entry);
+    saveLogs();
+}
+
+// Log an upload action
+function logUpload(uploadType, fileName, recordsCount, status, notes = '') {
+    const entry = {
+        timestamp: getTimestamp(),
+        uploadType: uploadType,
+        fileName: fileName,
+        recordsCount: recordsCount,
+        status: status,
+        notes: notes
+    };
+    
+    uploadsLog.push(entry);
+    saveLogs();
+}
+
+// Log an error
+function logError(errorType, courseId, courseTitle, firstDay, lastDay, errorMessage, sourceFile = '') {
+    const entry = {
+        timestamp: getTimestamp(),
+        errorType: errorType,
+        courseId: courseId || '',
+        courseTitle: courseTitle || '',
+        firstDay: firstDay || '',
+        lastDay: lastDay || '',
+        errorMessage: errorMessage,
+        sourceFile: sourceFile
+    };
+    
+    errorsLog.push(entry);
+    saveLogs();
+}
 
 // Load events and event days from CSV
 async function loadEvents() {
@@ -106,6 +216,9 @@ function setupFileInput() {
         
         renderAssignmentGrid();
         updateStats();
+        
+        // Log upload
+        logUpload('Courses', file.name, courses.length, 'Success');
         
         // Reset file input
         fileInput.value = '';
@@ -324,13 +437,21 @@ function handleAssignmentChange(courseId, eventId, isChecked) {
     if (isChecked) {
         if (!assignments[courseId].includes(eventId)) {
             assignments[courseId].push(eventId);
+            // Log ADD with no days yet
+            logChange('ADD', courseId, eventId, null);
         }
     } else {
         assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
         // Also remove from schedule if configured
-        if (schedule[eventId] && schedule[eventId][courseId]) {
+        const hadDays = schedule[eventId] && schedule[eventId][courseId];
+        const oldDays = hadDays ? schedule[eventId][courseId].days : null;
+        
+        if (hadDays) {
             delete schedule[eventId][courseId];
         }
+        
+        // Log REMOVE with old days if configured
+        logChange('REMOVE', courseId, eventId, null, oldDays);
     }
     
     updateStats();
@@ -667,6 +788,11 @@ function handleTimelineDrop(e) {
             return;
         }
         
+        // Check if this is a new placement or a change
+        const existingPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
+        const oldDays = existingPlacement ? existingPlacement.days : null;
+        const action = oldDays ? 'CHANGE' : 'ADD';
+        
         // Save placement
         if (!schedule[draggedBlock.eventId]) {
             schedule[draggedBlock.eventId] = {};
@@ -676,6 +802,9 @@ function handleTimelineDrop(e) {
             startDay: snapDay,
             days: courseDays
         };
+        
+        // Log the change
+        logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays);
         
         // Re-render this swimlane
         renderSwimlanes();
@@ -722,6 +851,9 @@ function showDropIndicator(timeline, startDay, daysNeeded, totalDays) {
 
 // Remove course from event
 function removeCourseFromEvent(courseId, eventId) {
+    // Get old days before removing
+    const oldDays = schedule[eventId]?.[courseId]?.days || null;
+    
     // Remove from assignments
     if (assignments[courseId]) {
         assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
@@ -731,6 +863,9 @@ function removeCourseFromEvent(courseId, eventId) {
     if (schedule[eventId]) {
         delete schedule[eventId][courseId];
     }
+    
+    // Log the removal
+    logChange('REMOVE', courseId, eventId, null, oldDays);
     
     // Update grid checkbox
     const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
@@ -947,7 +1082,7 @@ function setupScheduleFileInput() {
         }
         
         // Process schedule import
-        importSchedule(scheduleData);
+        importSchedule(scheduleData, file.name);
         
         // Reset file input to allow re-uploading the same file
         fileInput.value = '';
@@ -955,7 +1090,7 @@ function setupScheduleFileInput() {
 }
 
 // Import schedule and auto-detect events based on dates
-function importSchedule(scheduleData) {
+function importSchedule(scheduleData, fileName) {
     const errors = [];
     const imported = [];
     let successCount = 0;
@@ -1034,6 +1169,16 @@ function importSchedule(scheduleData) {
             Days: `${match.startDayNumber}-${match.endDayNumber}`
         });
     });
+    
+    // Log errors
+    errors.forEach(err => {
+        const course = courses.find(c => c.Course_ID === err.Course_ID);
+        logError('Schedule Import', err.Course_ID, course?.Course_Name || '', err.First_Day, err.Last_Day, err.Error, fileName);
+    });
+    
+    // Log upload summary
+    const status = errors.length > 0 ? `Partial Success (${errors.length} errors)` : 'Success';
+    logUpload('Schedule Import', fileName, successCount, status);
     
     // Update UI
     renderAssignmentGrid();
@@ -1181,4 +1326,90 @@ function downloadFile(content, filename, mimeType) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Export change log to CSV
+function exportChangelog() {
+    if (changeLog.length === 0) {
+        alert('No changes to export yet.');
+        return;
+    }
+    
+    const headers = ['Timestamp', 'Action', 'Course_ID', 'Course_Title', 'Instructor', 'Event_ID', 
+                     'First_Day', 'Last_Day', 'Old_First_Day', 'Old_Last_Day', 'Notes', 'CSI_Ticket'];
+    
+    const rows = changeLog.map(entry => [
+        entry.timestamp || '',
+        entry.action || '',
+        entry.courseId || '',
+        entry.courseTitle || '',
+        entry.instructor || '',
+        entry.eventId || '',
+        entry.firstDay || '',
+        entry.lastDay || '',
+        entry.oldFirstDay || '',
+        entry.oldLastDay || '',
+        entry.notes || '',
+        entry.csiTicket || ''
+    ]);
+    
+    const csv = [headers, ...rows].map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    downloadFile(csv, `SchedulePro_ChangeLog_${timestamp}.csv`, 'text/csv');
+}
+
+// Export uploads and errors to separate CSVs
+function exportUploadsAndErrors() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    
+    // Export uploads log
+    if (uploadsLog.length > 0) {
+        const uploadHeaders = ['Timestamp', 'Upload_Type', 'File_Name', 'Records_Count', 'Status', 'Notes'];
+        const uploadRows = uploadsLog.map(entry => [
+            entry.timestamp || '',
+            entry.uploadType || '',
+            entry.fileName || '',
+            entry.recordsCount !== undefined ? entry.recordsCount : '',
+            entry.status || '',
+            entry.notes || ''
+        ]);
+        
+        const uploadCsv = [uploadHeaders, ...uploadRows].map(row => 
+            row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+        
+        downloadFile(uploadCsv, `SchedulePro_Uploads_${timestamp}.csv`, 'text/csv');
+    } else {
+        alert('No upload records to export.');
+    }
+    
+    // Export errors log with slight delay to prevent download collision
+    setTimeout(() => {
+        if (errorsLog.length > 0) {
+            const errorHeaders = ['Timestamp', 'Error_Type', 'Course_ID', 'Course_Title', 
+                                 'First_Day', 'Last_Day', 'Error_Message', 'Source_File'];
+            const errorRows = errorsLog.map(entry => [
+                entry.timestamp || '',
+                entry.errorType || '',
+                entry.courseId || '',
+                entry.courseTitle || '',
+                entry.firstDay || '',
+                entry.lastDay || '',
+                entry.errorMessage || '',
+                entry.sourceFile || ''
+            ]);
+            
+            const errorCsv = [errorHeaders, ...errorRows].map(row => 
+                row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+            ).join('\n');
+            
+            downloadFile(errorCsv, `SchedulePro_Errors_${timestamp}.csv`, 'text/csv');
+        } else if (uploadsLog.length === 0) {
+            // Only show alert if no uploads were exported either
+            alert('No records to export.');
+        }
+    }, 100);
 }
