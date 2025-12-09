@@ -206,7 +206,7 @@ async function fetchCSV(url) {
 // Parse CSV data
 function parseCSV(csvText) {
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = parseCSVLine(lines[0]).map(h => h.trim());
     
     return lines.slice(1).map(line => {
         const values = parseCSVLine(line);
@@ -218,7 +218,7 @@ function parseCSV(csvText) {
     });
 }
 
-// Parse a single CSV line (handles quoted values with commas)
+// Parse a single CSV line (handles quoted values with commas and escaped quotes)
 function parseCSVLine(line) {
     const result = [];
     let current = '';
@@ -226,9 +226,17 @@ function parseCSVLine(line) {
     
     for (let i = 0; i < line.length; i++) {
         const char = line[i];
-        if (char === '"') {
+        const nextChar = line[i + 1];
+        
+        if (char === '"' && inQuotes && nextChar === '"') {
+            // Escaped quote - add one quote to result
+            current += '"';
+            i++; // Skip next quote
+        } else if (char === '"') {
+            // Toggle quote mode
             inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
+            // Field delimiter
             result.push(current);
             current = '';
         } else {
@@ -937,6 +945,17 @@ function removeCourseFromEvent(courseId, eventId) {
     updateConfigureDaysButton();
 }
 
+// Helper function to escape CSV values
+function escapeCSV(value) {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    // If contains comma, quote, newline, or carriage return, wrap in quotes and escape internal quotes
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
 // Export to Excel
 function exportToExcel() {
     if (courses.length === 0) {
@@ -979,10 +998,10 @@ function exportToExcel() {
             }
             
             if (coursesOnDay.length === 0) {
-                csv += `${eventId},${eventName},${dayNum},${day.Day_Date || ''},,,,, No\n`;
+                csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,No\n`;
             } else {
                 coursesOnDay.forEach(course => {
-                    csv += `${eventId},${eventName},${dayNum},${day.Day_Date || ''},${course.Course_ID},${course.Instructor},${course.Course_Name},${course.Duration_Days},Yes\n`;
+                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},Yes\n`;
                 });
             }
         });
