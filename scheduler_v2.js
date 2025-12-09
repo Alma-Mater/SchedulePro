@@ -944,6 +944,11 @@ function exportToExcel() {
         return;
     }
     
+    if (events.length === 0) {
+        alert('Please load events first');
+        return;
+    }
+    
     // Create CSV content
     let csv = 'Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Configured\n';
     
@@ -952,13 +957,12 @@ function exportToExcel() {
         const eventName = event.Event;
         const totalDays = parseInt(event['Total_Days']);
         
-        // Get days for this event
-        const days = eventDays.filter(d => 
-            d.Event.toLowerCase().includes(eventName.toLowerCase().split('-')[0])
-        ).slice(0, totalDays);
+        // Get days for this event - match by Event_ID
+        const days = eventDays.filter(d => d.Event_ID === eventId)
+                              .sort((a, b) => parseInt(a.Day_Number) - parseInt(b.Day_Number));
         
-        days.forEach((day, index) => {
-            const dayNum = index + 1;
+        days.forEach(day => {
+            const dayNum = parseInt(day.Day_Number);
             
             // Find courses assigned to this day
             const coursesOnDay = [];
