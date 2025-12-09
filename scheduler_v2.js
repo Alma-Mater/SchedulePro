@@ -1007,8 +1007,12 @@ function exportToExcel() {
         });
     });
     
+    // Add UTF-8 BOM for proper encoding in Excel
+    const BOM = '\ufeff';
+    const csvWithBOM = BOM + csv;
+    
     // Download as CSV (Excel compatible)
-    downloadFile(csv, 'schedule_export.csv', 'text/csv');
+    downloadFile(csvWithBOM, 'schedule_export.csv', 'text/csv;charset=utf-8');
     
     alert('Schedule exported successfully! Open in Excel to view.');
 }
@@ -1442,8 +1446,12 @@ function exportChangelog() {
         row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
     
+    // Add UTF-8 BOM for proper encoding in Excel
+    const BOM = '\ufeff';
+    const csvWithBOM = BOM + csv;
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    downloadFile(csv, `SchedulePro_ChangeLog_${timestamp}.csv`, 'text/csv');
+    downloadFile(csvWithBOM, `SchedulePro_ChangeLog_${timestamp}.csv`, 'text/csv;charset=utf-8');
 }
 
 // Export uploads and errors to separate CSVs
@@ -1466,7 +1474,9 @@ function exportUploadsAndErrors() {
             row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
         ).join('\n');
         
-        downloadFile(uploadCsv, `SchedulePro_Uploads_${timestamp}.csv`, 'text/csv');
+        // Add UTF-8 BOM for proper encoding in Excel
+        const BOM = '\ufeff';
+        downloadFile(BOM + uploadCsv, `SchedulePro_Uploads_${timestamp}.csv`, 'text/csv;charset=utf-8');
     } else {
         alert('No upload records to export.');
     }
@@ -1491,7 +1501,9 @@ function exportUploadsAndErrors() {
                 row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
             ).join('\n');
             
-            downloadFile(errorCsv, `SchedulePro_Errors_${timestamp}.csv`, 'text/csv');
+            // Add UTF-8 BOM for proper encoding in Excel
+            const BOM = '\ufeff';
+            downloadFile(BOM + errorCsv, `SchedulePro_Errors_${timestamp}.csv`, 'text/csv;charset=utf-8');
         } else if (uploadsLog.length === 0) {
             // Only show alert if no uploads were exported either
             alert('No records to export.');
