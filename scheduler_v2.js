@@ -18,7 +18,13 @@ let errorsLog = [];
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadLogs();
-    loadEvents();
+    const hadSavedData = loadRoundData(); // Load saved round data first
+    
+    // Only load default events if no saved data exists
+    if (!hadSavedData) {
+        loadEvents();
+    }
+    
     setupFileInput();
     setupUnavailabilityFileInput();
     setupScheduleFileInput();
@@ -42,6 +48,50 @@ function saveLogs() {
     localStorage.setItem('schedulepro_changelog', JSON.stringify(changeLog));
     localStorage.setItem('schedulepro_uploads', JSON.stringify(uploadsLog));
     localStorage.setItem('schedulepro_errors', JSON.stringify(errorsLog));
+}
+
+// Auto-save round data to localStorage
+function autoSaveRound() {
+    const roundData = {
+        courses,
+        events,
+        eventDays,
+        instructorUnavailable,
+        unavailabilityMap,
+        assignments,
+        schedule,
+        timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('schedulepro_autosave', JSON.stringify(roundData));
+}
+
+// Load round data from localStorage
+function loadRoundData() {
+    const saved = localStorage.getItem('schedulepro_autosave');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            courses = data.courses || [];
+            events = data.events || [];
+            eventDays = data.eventDays || [];
+            instructorUnavailable = data.instructorUnavailable || [];
+            unavailabilityMap = data.unavailabilityMap || {};
+            assignments = data.assignments || {};
+            schedule = data.schedule || {};
+            
+            // Re-render if data was loaded
+            if (courses.length > 0 || events.length > 0) {
+                renderAssignmentGrid();
+                renderSwimlanes();
+                updateStats();
+                updateConfigureDaysButton();
+            }
+            return true; // Data was loaded
+        } catch (e) {
+            console.error('Failed to load saved round:', e);
+        }
+    }
+    return false; // No data found
 }
 
 // Get current timestamp
@@ -219,6 +269,8 @@ function setupFileInput() {
         
         // Log upload
         logUpload('Courses', file.name, courses.length, 'Success');
+        saveLogs();
+        autoSaveRound();
         
         // Reset file input
         fileInput.value = '';
@@ -254,6 +306,8 @@ function setupUnavailabilityFileInput() {
         
         // Re-render grid to show constraints
         renderAssignmentGrid();
+        
+        autoSaveRound();
         
         alert(`Loaded unavailability for ${instructorUnavailable.length} entries`);
         
@@ -456,6 +510,8 @@ function handleAssignmentChange(courseId, eventId, isChecked) {
     
     updateStats();
     updateConfigureDaysButton();
+    saveLogs();
+    autoSaveRound();
 }
 
 // Update configure days button state
@@ -809,6 +865,8 @@ function handleTimelineDrop(e) {
         // Re-render this swimlane
         renderSwimlanes();
         updateStats();
+        saveLogs();
+        autoSaveRound();
     }
 }
 
@@ -1007,6 +1065,7 @@ function setupEventsFileInput() {
         events = newEvents;
         renderAssignmentGrid();
         updateStats();
+        autoSaveRound();
         
         alert(`Loaded ${events.length} events`);
         fileInput.value = '';
@@ -1045,6 +1104,7 @@ function setupEventDaysFileInput() {
         
         renderAssignmentGrid();
         updateStats();
+        autoSaveRound();
         
         alert(`Loaded ${eventDays.length} event days`);
         fileInput.value = '';
@@ -1179,11 +1239,13 @@ function importSchedule(scheduleData, fileName) {
     // Log upload summary
     const status = errors.length > 0 ? `Partial Success (${errors.length} errors)` : 'Success';
     logUpload('Schedule Import', fileName, successCount, status);
+    saveLogs();
     
     // Update UI
     renderAssignmentGrid();
     updateStats();
     updateConfigureDaysButton();
+    autoSaveRound();
     
     // Show results
     let message = `Successfully imported ${successCount} course assignment(s)`;
@@ -1412,4 +1474,80 @@ function exportUploadsAndErrors() {
             alert('No records to export.');
         }
     }, 100);
+}
+
+// Save Round - Manual save with timestamp
+function saveRound() {
+    if (courses.length === 0 && Object.keys(assignments).length === 0) {
+        alert('Nothing to save yet. Upload courses and make assignments first.');
+        return;
+    }
+    
+    const roundData = {
+        courses,
+        events,
+        eventDays,
+        instructorUnavailable,
+        unavailabilityMap,
+        assignments,
+        schedule,
+        timestamp: new Date().toISOString(),
+        savedAt: getTimestamp()
+    };
+    
+    const json = JSON.stringify(roundData, null, 2);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    downloadFile(json, `SchedulePro_Round_${timestamp}.json`, 'application/json');
+    
+    alert('Round saved successfully! You can load this file later to continue working.');
+}
+
+// Load Round - Import saved round from JSON file
+function loadRound() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            // Validate data structure
+            if (!data.courses || !data.events) {
+                alert('Invalid round file format.');
+                return;
+            }
+            
+            // Load all data
+            courses = data.courses || [];
+            events = data.events || [];
+            eventDays = data.eventDays || [];
+            instructorUnavailable = data.instructorUnavailable || [];
+            unavailabilityMap = data.unavailabilityMap || {};
+            assignments = data.assignments || {};
+            schedule = data.schedule || {};
+            
+            // Re-render everything
+            renderAssignmentGrid();
+            renderSwimlanes();
+            updateStats();
+            updateConfigureDaysButton();
+            
+            // Auto-save to localStorage
+            autoSaveRound();
+            
+            const savedAt = data.savedAt || 'Unknown date';
+            alert(`Round loaded successfully!\n\nSaved at: ${savedAt}\nCourses: ${courses.length}\nEvents: ${events.length}`);
+            
+        } catch (error) {
+            console.error('Load error:', error);
+            alert('Failed to load round file. Please check the file format.');
+        }
+    });
+    
+    input.click();
 }
