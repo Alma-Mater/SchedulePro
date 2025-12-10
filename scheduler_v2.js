@@ -787,39 +787,8 @@ function completeReset() {
     }
 }
 
-// Populate stats details with unassigned courses and unfilled days
+// Populate stats details with unfilled days
 function populateStatsDetails() {
-    // Get unassigned courses - must match the logic in updateStats()
-    const unassignedCourses = [];
-    const assignedCourses = [];
-    
-    // Debug: Log assignments structure
-    console.log('Total courses:', courses.length);
-    console.log('Assignments object:', assignments);
-    
-    courses.forEach(course => {
-        const courseId = course.Course_ID;
-        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
-        
-        console.log(`Course ${courseId} (${course.Course_Name}): ${isAssigned ? 'ASSIGNED' : 'UNASSIGNED'}`, assignments[courseId]);
-        
-        if (isAssigned) {
-            assignedCourses.push(course);
-        } else {
-            unassignedCourses.push(course);
-        }
-    });
-    
-    console.log('Assigned count:', assignedCourses.length, 'Unassigned count:', unassignedCourses.length);
-    
-    const unassignedList = document.getElementById('unassignedCoursesList');
-    if (unassignedCourses.length === 0) {
-        unassignedList.innerHTML = '<li style="color: #28a745; border-left-color: #28a745;">✅ All courses are assigned!</li>';
-    } else {
-        unassignedList.innerHTML = unassignedCourses.map(course => {
-            return `<li><strong>${course.Course_Name}</strong> (${course.Duration_Days} days) - ${course.Instructor}</li>`;
-        }).join('');
-    }
     
     // Get events with unfilled days
     const eventsWithUnfilledDays = [];
