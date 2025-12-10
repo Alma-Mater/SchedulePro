@@ -213,43 +213,54 @@ function processConsolidatedDates(datesData) {
     eventDays = [];
     
     datesData.forEach(row => {
-        const eventId = row.Event_ID;
-        const eventName = row.Event;
-        const firstDay = row.First_Event_Day;
-        const lastDay = row.Last_Event_Day;
+        const eventId = row.Event_ID?.trim();
+        const eventName = row.Event?.trim();
+        const firstDay = row.First_Event_Day?.trim();
+        const lastDay = row.Last_Event_Day?.trim();
         const totalDays = parseInt(row.Total_Days);
         
-        // Create event entry
+        // Skip empty rows
+        if (!eventId || !eventName || !firstDay || !lastDay || isNaN(totalDays)) {
+            return;
+        }
+        
+        // Auto-generate event days from First_Event_Day to Last_Event_Day
+        const startDate = new Date(firstDay);
+        const endDate = new Date(lastDay);
+        
+        // Validate dates - skip this event entirely if dates are invalid
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.warn(`Skipping event ${eventId}: Invalid dates ${firstDay} to ${lastDay}`);
+            return;
+        }
+        
+        // Create event entry AFTER validating dates
         events.push({
             Event_ID: eventId,
             Event: eventName,
             Total_Days: totalDays,
-            Hotel_Location: row.Hotel_Location || '',
-            EarlyBird_End_Date: row.EarlyBird_End_Date || '',
-            Notes: row.Notes || ''
+            Hotel_Location: row.Hotel_Location?.trim() || '',
+            EarlyBird_End_Date: row.EarlyBird_End_Date?.trim() || '',
+            Notes: row.Notes?.trim() || ''
         });
         
-        // Auto-generate event days from First_Event_Day to Last_Event_Day
-        if (firstDay && lastDay) {
-            const startDate = new Date(firstDay);
-            const endDate = new Date(lastDay);
+        let currentDate = new Date(startDate);
+        let dayNumber = 1;
+        
+        while (currentDate <= endDate && dayNumber <= totalDays) {
+            eventDays.push({
+                Event_ID: eventId,
+                Event_Name: eventName,
+                Day_Number: dayNumber,
+                Day_Date: formatDate(currentDate)
+            });
             
-            let currentDate = new Date(startDate);
-            let dayNumber = 1;
-            
-            while (currentDate <= endDate && dayNumber <= totalDays) {
-                eventDays.push({
-                    Event_ID: eventId,
-                    Event_Name: eventName,
-                    Day_Number: dayNumber,
-                    Day_Date: formatDate(currentDate)
-                });
-                
-                currentDate.setDate(currentDate.getDate() + 1);
-                dayNumber++;
-            }
+            currentDate.setDate(currentDate.getDate() + 1);
+            dayNumber++;
         }
     });
+    
+    console.log(`Processed ${events.length} events, generated ${eventDays.length} event days`);
 }
 
 // Helper: Format date as M/D/YYYY
@@ -1159,7 +1170,7 @@ function setupEventsFileInput() {
             }
             
             processConsolidatedDates(uploadedData);
-            alert(`Loaded ${events.length} events with auto-generated daily schedule`);
+            alert(`Loaded ${events.length} events with ${eventDays.length} days auto-generated from date ranges`);
         } else {
             // Old format: Just events list
             const requiredColumns = ['Event_ID', 'Event', 'Total_Days'];
@@ -1386,17 +1397,24 @@ function findEventForDateRange(startDate, endDate) {
         const eventStart = new Date(days[0].Day_Date);
         const eventEnd = new Date(days[days.length - 1].Day_Date);
         
-        if (startDate >= eventStart && endDate <= eventEnd) {
-            // Find day numbers
+        // Normalize dates to compare by day only (ignore time)
+        const normalizeDate = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const normStart = normalizeDate(startDate);
+        const normEnd = normalizeDate(endDate);
+        const normEventStart = normalizeDate(eventStart);
+        const normEventEnd = normalizeDate(eventEnd);
+        
+        if (normStart >= normEventStart && normEnd <= normEventEnd) {
+            // Find day numbers by matching dates
             const dayNumbers = [];
             const startDayNumber = days.find(d => {
-                const dayDate = new Date(d.Day_Date);
-                return dayDate.getTime() === startDate.getTime();
+                const dayDate = normalizeDate(new Date(d.Day_Date));
+                return dayDate.getTime() === normStart.getTime();
             })?.Day_Number;
             
             const endDayNumber = days.find(d => {
-                const dayDate = new Date(d.Day_Date);
-                return dayDate.getTime() === endDate.getTime();
+                const dayDate = normalizeDate(new Date(d.Day_Date));
+                return dayDate.getTime() === normEnd.getTime();
             })?.Day_Number;
             
             if (startDayNumber && endDayNumber) {
