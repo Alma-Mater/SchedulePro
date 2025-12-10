@@ -132,12 +132,12 @@
 
         .grid-table-container {
             overflow: auto;
-            max-height: 600px;
+            max-height: 450px;
         }
 
         .grid-table-container::-webkit-scrollbar {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
         }
 
         .grid-table-container::-webkit-scrollbar-track {
@@ -560,6 +560,23 @@
             padding: 10px;
         }
 
+        .scroll-hint {
+            text-align: right;
+            color: #667eea;
+            font-size: 0.9em;
+            font-weight: 700;
+            padding: 5px 10px;
+            background: linear-gradient(to left, rgba(102, 126, 234, 0.1), transparent);
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .scroll-hint-arrow {
+            display: inline-block;
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
@@ -660,6 +677,9 @@
                     <div id="step2Content" class="collapsible-content">
                         <div class="alert alert-info">
                             <strong>Instructions:</strong> Check the boxes to assign each course to one or more events. The same course can be assigned to multiple events.
+                        </div>
+                        <div class="scroll-hint">
+                            Scroll right to see all events <span class="scroll-hint-arrow">→</span>
                         </div>
                         <div class="grid-scroll-wrapper">
                             <div class="grid-table-container">
