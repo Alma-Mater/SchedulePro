@@ -491,7 +491,17 @@ function renderAssignmentGrid() {
     events.forEach(event => {
         const th = document.createElement('th');
         th.className = 'event-header';
-        th.textContent = event.Event;
+        
+        // Get month from first event day
+        const eventFirstDay = eventDays.find(d => d.Event_ID === event.Event_ID);
+        let monthStr = '';
+        if (eventFirstDay && eventFirstDay.Day_Date) {
+            const date = new Date(eventFirstDay.Day_Date);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            monthStr = months[date.getMonth()];
+        }
+        
+        th.innerHTML = `${event.Event}<br><small>(${monthStr})</small>`;
         th.title = `${event.Event} (${event['Total_Days']} days)`;
         thead.appendChild(th);
     });
@@ -714,6 +724,15 @@ function renderSwimlanes() {
         swimlane.className = 'event-swimlane';
         swimlane.dataset.eventId = eventId;
         
+        // Get month from first event day
+        const eventFirstDay = days[0];
+        let monthStr = '';
+        if (eventFirstDay && eventFirstDay.Day_Date) {
+            const date = new Date(eventFirstDay.Day_Date);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            monthStr = months[date.getMonth()];
+        }
+        
         // Determine if this event should be expanded (restore previous state or default collapsed)
         const isExpanded = expandedState[eventId] || false;
         const bodyClass = isExpanded ? 'event-swimlane-body' : 'event-swimlane-body collapsed';
@@ -721,7 +740,7 @@ function renderSwimlanes() {
         
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} (${totalDays} days)</span>
+                <span>${eventName} (${totalDays} days) (${monthStr})</span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-${eventId}">
