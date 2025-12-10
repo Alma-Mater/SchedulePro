@@ -947,7 +947,7 @@ function renderSwimlanes() {
             assignments[course.Course_ID]?.includes(eventId)
         );
         
-        if (assignedCourses.length === 0) return;
+        // Show all events, even if no courses assigned (removed return statement)
         
         // Get days for this event
         const days = eventDays.filter(d => d.Event_ID === eventId);
