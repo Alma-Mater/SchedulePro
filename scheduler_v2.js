@@ -497,11 +497,11 @@ function renderAssignmentGrid() {
         let monthStr = '';
         if (eventFirstDay && eventFirstDay.Day_Date) {
             const date = new Date(eventFirstDay.Day_Date);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             monthStr = months[date.getMonth()];
         }
         
-        th.innerHTML = `${event.Event}<br><small>(${monthStr})</small>`;
+        th.innerHTML = `${event.Event}<br><small>${monthStr}</small>`;
         th.title = `${event.Event} (${event['Total_Days']} days)`;
         thead.appendChild(th);
     });
@@ -689,6 +689,14 @@ function goToConfigureDays() {
 function backToGrid() {
     document.getElementById('configureDaysView').classList.remove('active');
     document.getElementById('gridView').classList.add('active');
+    
+    // Ensure Step 2 section is expanded when returning from configure days
+    const step2Content = document.getElementById('step2Content');
+    const step2Toggle = document.getElementById('step2Toggle');
+    if (step2Content && step2Toggle) {
+        step2Content.classList.remove('collapsed');
+        step2Toggle.textContent = '▼ Collapse Section';
+    }
 }
 
 // Render swimlanes for day configuration
@@ -729,7 +737,7 @@ function renderSwimlanes() {
         let monthStr = '';
         if (eventFirstDay && eventFirstDay.Day_Date) {
             const date = new Date(eventFirstDay.Day_Date);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             monthStr = months[date.getMonth()];
         }
         
@@ -740,7 +748,7 @@ function renderSwimlanes() {
         
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} (${totalDays} days) (${monthStr})</span>
+                <span>${eventName} ${totalDays} days • ${monthStr}</span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-${eventId}">

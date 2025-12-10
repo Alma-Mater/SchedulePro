@@ -126,9 +126,12 @@
         }
 
         /* Grid View Styles */
+        .grid-scroll-wrapper {
+            margin-top: 20px;
+        }
+
         .grid-table-container {
             overflow: auto;
-            margin-top: 20px;
             max-height: 600px;
         }
 
@@ -621,8 +624,9 @@
                         <div class="alert alert-info">
                             <strong>Instructions:</strong> Check the boxes to assign each course to one or more events. The same course can be assigned to multiple events.
                         </div>
-                        <div class="grid-table-container">
-                            <table class="assignment-grid" id="assignmentGrid">
+                        <div class="grid-scroll-wrapper">
+                            <div class="grid-table-container">
+                                <table class="assignment-grid" id="assignmentGrid">
                                 <thead>
                                     <tr>
                                         <th class="course-header">Course</th>
@@ -633,6 +637,7 @@
                                     <!-- Rows will be added by JS -->
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>
