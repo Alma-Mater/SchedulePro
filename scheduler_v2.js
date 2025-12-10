@@ -50,6 +50,140 @@ function saveLogs() {
     localStorage.setItem('schedulepro_errors', JSON.stringify(errorsLog));
 }
 
+// Clear change log with two-stage confirmation
+function clearChangeLog() {
+    // Create first dialog
+    const dialog1 = document.createElement('div');
+    dialog1.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    const box1 = document.createElement('div');
+    box1.style.cssText = 'background: white; padding: 30px; border-radius: 10px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+    
+    box1.innerHTML = `
+        <h3 style="margin-bottom: 20px; color: #667eea;">Export Change Log?</h3>
+        <p style="margin-bottom: 25px; line-height: 1.6;">Would you like to export the current change log before clearing it?</p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="exportAndClear" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Export & Clear</button>
+            <button id="clearWithoutExport" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Clear Without Exporting</button>
+            <button id="cancelClear1" style="padding: 10px 20px; background: #495057; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Cancel</button>
+        </div>
+    `;
+    
+    dialog1.appendChild(box1);
+    document.body.appendChild(dialog1);
+    
+    document.getElementById('exportAndClear').onclick = () => {
+        document.body.removeChild(dialog1);
+        exportChangelog();
+        performChangeLogClear();
+    };
+    
+    document.getElementById('clearWithoutExport').onclick = () => {
+        document.body.removeChild(dialog1);
+        showFinalWarning();
+    };
+    
+    document.getElementById('cancelClear1').onclick = () => {
+        document.body.removeChild(dialog1);
+    };
+    
+    // Close on background click
+    dialog1.onclick = (e) => {
+        if (e.target === dialog1) {
+            document.body.removeChild(dialog1);
+        }
+    };
+}
+
+// Show final warning before clearing change log
+function showFinalWarning() {
+    const dialog2 = document.createElement('div');
+    dialog2.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    const box2 = document.createElement('div');
+    box2.style.cssText = 'background: white; padding: 30px; border-radius: 10px; max-width: 550px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+    
+    box2.innerHTML = `
+        <h3 style="margin-bottom: 20px; color: #dc3545;">⚠️ WARNING</h3>
+        <p style="margin-bottom: 25px; line-height: 1.6; font-size: 1.05em;">
+            This will <strong>permanently delete all changes logged since the beginning of time</strong>. 
+            This action cannot be undone.
+        </p>
+        <p style="margin-bottom: 25px; line-height: 1.6; font-weight: 600;">Are you sure you wish to proceed?</p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="confirmDelete" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Yes, Delete All Changes</button>
+            <button id="cancelClear2" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Cancel</button>
+        </div>
+    `;
+    
+    dialog2.appendChild(box2);
+    document.body.appendChild(dialog2);
+    
+    document.getElementById('confirmDelete').onclick = () => {
+        document.body.removeChild(dialog2);
+        performChangeLogClear();
+    };
+    
+    document.getElementById('cancelClear2').onclick = () => {
+        document.body.removeChild(dialog2);
+    };
+    
+    // Close on background click
+    dialog2.onclick = (e) => {
+        if (e.target === dialog2) {
+            document.body.removeChild(dialog2);
+        }
+    };
+}
+
+// Actually perform the change log clear
+function performChangeLogClear() {
+    changeLog = [];
+    localStorage.setItem('schedulepro_changelog', JSON.stringify(changeLog));
+    alert('✅ Change log has been cleared successfully.');
+}
+
+// Clear uploads and errors log with single confirmation
+function clearUploadsAndErrors() {
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    const box = document.createElement('div');
+    box.style.cssText = 'background: white; padding: 30px; border-radius: 10px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+    
+    box.innerHTML = `
+        <h3 style="margin-bottom: 20px; color: #667eea;">Clear Uploads & Errors Log?</h3>
+        <p style="margin-bottom: 25px; line-height: 1.6;">Are you sure you want to clear the Uploads & Errors log?</p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="confirmClearLogs" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Yes</button>
+            <button id="cancelClearLogs" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Cancel</button>
+        </div>
+    `;
+    
+    dialog.appendChild(box);
+    document.body.appendChild(dialog);
+    
+    document.getElementById('confirmClearLogs').onclick = () => {
+        document.body.removeChild(dialog);
+        uploadsLog = [];
+        errorsLog = [];
+        localStorage.setItem('schedulepro_uploads', JSON.stringify(uploadsLog));
+        localStorage.setItem('schedulepro_errors', JSON.stringify(errorsLog));
+        alert('✅ Uploads & Errors log has been cleared successfully.');
+    };
+    
+    document.getElementById('cancelClearLogs').onclick = () => {
+        document.body.removeChild(dialog);
+    };
+    
+    // Close on background click
+    dialog.onclick = (e) => {
+        if (e.target === dialog) {
+            document.body.removeChild(dialog);
+        }
+    };
+}
+
 // Auto-save round data to localStorage
 function autoSaveRound() {
     const roundData = {
