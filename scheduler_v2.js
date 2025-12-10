@@ -761,14 +761,71 @@ function renderSwimlanes() {
                     `).join('')}
                 </div>
                 ${assignedCourses.map(course => renderCourseSwimlane(course, eventId, totalDays)).join('')}
+                <div class="add-course-section">
+                    <select class="add-course-dropdown" id="add-course-${eventId}" onchange="addCourseToEvent('${eventId}', this.value, this)">
+                        <option value="">+ Add Course to Event...</option>
+                    </select>
+                </div>
             </div>
         `;
         
         container.appendChild(swimlane);
+        
+        // Populate the dropdown with available courses
+        populateCourseDropdown(eventId, assignedCourses);
     });
     
     // Setup drag and drop for all course blocks
     setupDragAndDrop();
+}
+
+// Populate course dropdown for an event
+function populateCourseDropdown(eventId, assignedCourses) {
+    const dropdown = document.getElementById(`add-course-${eventId}`);
+    if (!dropdown) return;
+    
+    // Get IDs of courses already assigned to this event
+    const assignedIds = new Set(assignedCourses.map(c => c.Course_ID));
+    
+    // Get event info for validation
+    const event = events.find(e => e.Event_ID === eventId);
+    const totalDays = event ? parseInt(event.Total_Days) : 0;
+    
+    // Add options for unassigned courses
+    courses.forEach(course => {
+        if (!assignedIds.has(course.Course_ID)) {
+            const option = document.createElement('option');
+            option.value = course.Course_ID;
+            
+            const duration = parseFloat(course.Duration_Days);
+            const daysNeeded = Math.ceil(duration);
+            
+            // Check if course fits in event
+            const warningIcon = daysNeeded > totalDays ? '⚠️ ' : '';
+            
+            // Check instructor availability
+            const blockedDays = getBlockedDays(course.Instructor, eventId);
+            const availableDays = totalDays - blockedDays.length;
+            const availWarning = availableDays < daysNeeded ? '❌ ' : '';
+            
+            option.textContent = `${warningIcon}${availWarning}${course.Instructor} - ${course.Course_Name} (${course.Duration_Days} days)`;
+            dropdown.appendChild(option);
+        }
+    });
+}
+
+// Add a course to an event from dropdown
+function addCourseToEvent(eventId, courseId, selectElement) {
+    if (!courseId) return; // User selected the placeholder option
+    
+    // Call existing assignment handler
+    handleAssignmentChange(courseId, eventId, true);
+    
+    // Reset dropdown to placeholder
+    selectElement.value = '';
+    
+    // Re-render swimlanes to show the new course
+    renderSwimlanes();
 }
 
 // Render a single course swimlane
