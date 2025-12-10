@@ -632,12 +632,17 @@
                         <button class="btn btn-secondary" onclick="downloadScheduleTemplate()">📥 Download Schedule Template</button>
                     </div>
                     -->
-                    <div class="alert alert-info margin-top-15">
-                        <strong>Events:</strong> Upload events.csv with: Event_ID, Event, Total_Days<br>
-                        <strong>Event Days:</strong> Upload event_days.csv with: Event_ID, Event_Name, Day_Number, Day_Date<br>
-                        <strong>Courses:</strong> Upload courses CSV with: Course_ID, Instructor, Course_Name, Duration_Days, Topic<br>
-                        <strong>Optional:</strong> Upload instructor unavailability CSV with: Instructor, Unavailable_Start, Unavailable_End<br>
-                        <strong>Import Schedule:</strong> Upload existing schedule CSV with: Course_ID, Duration_Days, First_Day, Last_Day (dates as YYYY-MM-DD)
+                    <div class="margin-top-15">
+                        <button class="btn btn-secondary btn-small" onclick="toggleStep1Help()" id="step1HelpToggle">💡 Help</button>
+                    </div>
+                    <div class="alert alert-info collapsed" id="step1Help" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; margin: 0; padding: 0; border: none;">
+                        <div style="padding: 15px;">
+                            <strong>Events:</strong> Upload events.csv with: Event_ID, Event, Total_Days<br>
+                            <strong>Event Days:</strong> Upload event_days.csv with: Event_ID, Event_Name, Day_Number, Day_Date<br>
+                            <strong>Courses:</strong> Upload courses CSV with: Course_ID, Instructor, Course_Name, Duration_Days, Topic<br>
+                            <strong>Optional:</strong> Upload instructor unavailability CSV with: Instructor, Unavailable_Start, Unavailable_End<br>
+                            <strong>Import Schedule:</strong> Upload existing schedule CSV with: Course_ID, Duration_Days, First_Day, Last_Day (dates as YYYY-MM-DD)
+                        </div>
                     </div>
                 </div>
 

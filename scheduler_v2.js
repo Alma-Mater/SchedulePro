@@ -1589,6 +1589,24 @@ function toggleEventSwimlane(eventId) {
     toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
 }
 
+// Toggle Step 1 help section
+function toggleStep1Help() {
+    const help = document.getElementById('step1Help');
+    const toggle = document.getElementById('step1HelpToggle');
+    
+    const isCollapsed = help.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        help.classList.remove('collapsed');
+        help.style.maxHeight = '200px';
+        toggle.textContent = '❌ Hide Help';
+    } else {
+        help.classList.add('collapsed');
+        help.style.maxHeight = '0';
+        toggle.textContent = '💡 Help';
+    }
+}
+
 // Helper function to download a file
 function downloadFile(content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });
