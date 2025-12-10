@@ -180,20 +180,84 @@ function logError(errorType, courseId, courseTitle, firstDay, lastDay, errorMess
     saveLogs();
 }
 
-// Load events and event days from CSV
+// Load events from consolidated Dates.csv
 async function loadEvents() {
     try {
-        const eventsData = await fetchCSV('Data/events.csv');
-        const daysData = await fetchCSV('Data/event_days.csv');
+        const datesData = await fetchCSV('Data/Dates.csv');
+        const parsedDates = parseCSV(datesData);
         
-        events = parseCSV(eventsData);
-        eventDays = parseCSV(daysData);
+        // Process consolidated dates file
+        processConsolidatedDates(parsedDates);
         
         renderAssignmentGrid();
         updateStats();
     } catch (error) {
         console.error('Error loading events:', error);
+        // Fallback to old format if Dates.csv doesn't exist
+        try {
+            const eventsData = await fetchCSV('Data/events.csv');
+            const daysData = await fetchCSV('Data/event_days.csv');
+            events = parseCSV(eventsData);
+            eventDays = parseCSV(daysData);
+            renderAssignmentGrid();
+            updateStats();
+        } catch (fallbackError) {
+            console.error('Error loading fallback events:', fallbackError);
+        }
     }
+}
+
+// Helper: Process consolidated dates CSV into events[] and eventDays[] arrays
+function processConsolidatedDates(datesData) {
+    events = [];
+    eventDays = [];
+    
+    datesData.forEach(row => {
+        const eventId = row.Event_ID;
+        const eventName = row.Event;
+        const firstDay = row.First_Event_Day;
+        const lastDay = row.Last_Event_Day;
+        const totalDays = parseInt(row.Total_Days);
+        
+        // Create event entry
+        events.push({
+            Event_ID: eventId,
+            Event: eventName,
+            Total_Days: totalDays,
+            Hotel_Location: row.Hotel_Location || '',
+            EarlyBird_End_Date: row.EarlyBird_End_Date || '',
+            Notes: row.Notes || ''
+        });
+        
+        // Auto-generate event days from First_Event_Day to Last_Event_Day
+        if (firstDay && lastDay) {
+            const startDate = new Date(firstDay);
+            const endDate = new Date(lastDay);
+            
+            let currentDate = new Date(startDate);
+            let dayNumber = 1;
+            
+            while (currentDate <= endDate && dayNumber <= totalDays) {
+                eventDays.push({
+                    Event_ID: eventId,
+                    Event_Name: eventName,
+                    Day_Number: dayNumber,
+                    Day_Date: formatDate(currentDate)
+                });
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+                dayNumber++;
+            }
+        }
+    });
+}
+
+// Helper: Format date as M/D/YYYY
+function formatDate(date) {
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
 }
 
 // Fetch CSV file
@@ -1074,27 +1138,46 @@ function setupEventsFileInput() {
         if (!file) return;
         
         const text = await file.text();
-        const newEvents = parseCSV(text);
+        const uploadedData = parseCSV(text);
         
-        if (newEvents.length === 0) {
+        if (uploadedData.length === 0) {
             alert('No events found in the file');
             return;
         }
         
-        const requiredColumns = ['Event_ID', 'Event', 'Total_Days'];
-        const hasAllColumns = requiredColumns.every(col => col in newEvents[0]);
+        // Check if this is the new consolidated format (Dates.csv)
+        const hasConsolidatedFormat = 'First_Event_Day' in uploadedData[0] && 'Last_Event_Day' in uploadedData[0];
         
-        if (!hasAllColumns) {
-            alert('CSV must have columns: Event_ID, Event, Total_Days');
-            return;
+        if (hasConsolidatedFormat) {
+            // New format: Process consolidated dates
+            const requiredColumns = ['Event_ID', 'Event', 'First_Event_Day', 'Last_Event_Day', 'Total_Days'];
+            const hasAllColumns = requiredColumns.every(col => col in uploadedData[0]);
+            
+            if (!hasAllColumns) {
+                alert('CSV must have columns: Event_ID, Event, First_Event_Day, Last_Event_Day, Total_Days\n(and optionally: Hotel_Location, EarlyBird_End_Date, Notes)');
+                return;
+            }
+            
+            processConsolidatedDates(uploadedData);
+            alert(`Loaded ${events.length} events with auto-generated daily schedule`);
+        } else {
+            // Old format: Just events list
+            const requiredColumns = ['Event_ID', 'Event', 'Total_Days'];
+            const hasAllColumns = requiredColumns.every(col => col in uploadedData[0]);
+            
+            if (!hasAllColumns) {
+                alert('CSV must have columns: Event_ID, Event, Total_Days');
+                return;
+            }
+            
+            events = uploadedData;
+            alert(`Loaded ${events.length} events (you may need to upload event_days.csv separately)`);
         }
         
-        events = newEvents;
         renderAssignmentGrid();
         updateStats();
         autoSaveRound();
         
-        alert(`Loaded ${events.length} events`);
         fileInput.value = '';
     });
 }
