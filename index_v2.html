@@ -249,6 +249,15 @@
             padding: 10px;
         }
 
+        .stat.clickable {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .stat.clickable:hover {
+            transform: translateY(-3px);
+        }
+
         .stat-value {
             font-size: 2em;
             font-weight: 700;
@@ -258,6 +267,54 @@
         .stat-label {
             color: #6c757d;
             margin-top: 5px;
+        }
+
+        .stats-details {
+            background: white;
+            border-radius: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0;
+            margin: 0;
+            border: none;
+        }
+
+        .stats-details.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .details-section {
+            margin-bottom: 20px;
+        }
+
+        .details-section h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .details-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .details-list li {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .event-unfilled {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         /* Collapsible Section */
@@ -651,13 +708,13 @@
                         <div class="stat-value" id="totalCourses">0</div>
                         <div class="stat-label">Total Courses</div>
                     </div>
-                    <div class="stat">
+                    <div class="stat clickable" onclick="toggleStatsDetails()" title="Click to view details">
                         <div class="stat-value" id="percentAssigned">0%</div>
-                        <div class="stat-label">Courses Assigned</div>
+                        <div class="stat-label">Courses Assigned 📊</div>
                     </div>
-                    <div class="stat">
+                    <div class="stat clickable" onclick="toggleStatsDetails()" title="Click to view details">
                         <div class="stat-value" id="percentDaysFilled">0%</div>
-                        <div class="stat-label">Event Days Filled</div>
+                        <div class="stat-label">Event Days Filled 📊</div>
                     </div>
                     <div class="stat">
                         <div class="stat-value" id="avgCoursesPerEvent">0</div>
@@ -666,6 +723,21 @@
                     <div class="stat">
                         <div class="stat-value" id="avgCoursesPerDay">0</div>
                         <div class="stat-label">Avg Courses/Day</div>
+                    </div>
+                </div>
+
+                <div class="stats-details" id="statsDetails">
+                    <div class="details-section">
+                        <h4>📝 Unassigned Courses</h4>
+                        <ul class="details-list" id="unassignedCoursesList">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                    <div class="details-section">
+                        <h4>📅 Events with Unfilled Days</h4>
+                        <ul class="details-list" id="unfilledDaysList">
+                            <!-- Populated by JS -->
+                        </ul>
                     </div>
                 </div>
 
@@ -734,6 +806,10 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #6c757d;">
+        <a href="#" onclick="completeReset(); return false;" style="color: #adb5bd; text-decoration: none; font-size: 0.9em;">Complete Reset - Clear All Data</a>
     </div>
 
     <script src="scheduler_v2.js"></script>

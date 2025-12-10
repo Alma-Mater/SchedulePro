@@ -748,6 +748,126 @@ function updateConfigureDaysButton() {
     btn.disabled = !hasAssignments;
 }
 
+// Toggle stats details panel
+function toggleStatsDetails() {
+    const detailsPanel = document.getElementById('statsDetails');
+    const isExpanded = detailsPanel.classList.contains('expanded');
+    
+    if (isExpanded) {
+        detailsPanel.classList.remove('expanded');
+    } else {
+        detailsPanel.classList.add('expanded');
+        populateStatsDetails();
+    }
+}
+
+// Complete reset - clear all data and start fresh
+function completeReset() {
+    if (confirm('⚠️ WARNING: This will completely reset SchedulePro and clear ALL data including:\n\n• All course assignments\n• All day configurations\n• All saved rounds\n• All change logs\n• All uploads\n\nYou will need to re-upload your CSV files to start over.\n\nAre you sure you want to proceed?')) {
+        // Clear all data structures
+        courses = [];
+        events = [];
+        eventDays = [];
+        instructorUnavailable = [];
+        unavailabilityMap = {};
+        assignments = {};
+        schedule = {};
+        changeLog = [];
+        uploadsLog = [];
+        errorsLog = [];
+        
+        // Clear localStorage
+        localStorage.removeItem('schedulepro_round');
+        localStorage.removeItem('schedulepro_changelog');
+        localStorage.removeItem('schedulepro_uploads');
+        localStorage.removeItem('schedulepro_errors');
+        
+        // Refresh the page to reset UI
+        location.reload();
+    }
+}
+
+// Populate stats details with unassigned courses and unfilled days
+function populateStatsDetails() {
+    // Get unassigned courses - must match the logic in updateStats()
+    const unassignedCourses = [];
+    const assignedCourses = [];
+    
+    // Debug: Log assignments structure
+    console.log('Total courses:', courses.length);
+    console.log('Assignments object:', assignments);
+    
+    courses.forEach(course => {
+        const courseId = course.Course_ID;
+        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        
+        console.log(`Course ${courseId} (${course.Course_Name}): ${isAssigned ? 'ASSIGNED' : 'UNASSIGNED'}`, assignments[courseId]);
+        
+        if (isAssigned) {
+            assignedCourses.push(course);
+        } else {
+            unassignedCourses.push(course);
+        }
+    });
+    
+    console.log('Assigned count:', assignedCourses.length, 'Unassigned count:', unassignedCourses.length);
+    
+    const unassignedList = document.getElementById('unassignedCoursesList');
+    if (unassignedCourses.length === 0) {
+        unassignedList.innerHTML = '<li style="color: #28a745; border-left-color: #28a745;">✅ All courses are assigned!</li>';
+    } else {
+        unassignedList.innerHTML = unassignedCourses.map(course => {
+            return `<li><strong>${course.Course_Name}</strong> (${course.Duration_Days} days) - ${course.Instructor}</li>`;
+        }).join('');
+    }
+    
+    // Get events with unfilled days
+    const eventsWithUnfilledDays = [];
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const totalDays = parseInt(event['Total_Days']);
+        let filledDays = 0;
+        
+        for (let day = 1; day <= totalDays; day++) {
+            let hasCourse = false;
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement && placement.days && Array.isArray(placement.days) && placement.days.includes(day)) {
+                        hasCourse = true;
+                        break;
+                    }
+                }
+            }
+            if (hasCourse) {
+                filledDays++;
+            }
+        }
+        
+        const unfilledDays = totalDays - filledDays;
+        if (unfilledDays > 0) {
+            eventsWithUnfilledDays.push({
+                event: event.Event,
+                filled: filledDays,
+                total: totalDays,
+                unfilled: unfilledDays
+            });
+        }
+    });
+    
+    const unfilledList = document.getElementById('unfilledDaysList');
+    if (eventsWithUnfilledDays.length === 0) {
+        unfilledList.innerHTML = '<li style="color: #28a745; border-left-color: #28a745;">✅ All event days are filled!</li>';
+    } else {
+        unfilledList.innerHTML = eventsWithUnfilledDays.map(item => {
+            return `<li class="event-unfilled">
+                <span><strong>${item.event}</strong></span>
+                <span style="color: #6c757d;">${item.filled}/${item.total} days filled (${item.unfilled} empty)</span>
+            </li>`;
+        }).join('');
+    }
+}
+
 // Update statistics
 function updateStats() {
     const totalCourses = courses.length;
@@ -762,7 +882,9 @@ function updateStats() {
     }
     
     // 1. Percent of courses assigned to events
-    const assignedCount = Object.values(assignments).filter(arr => arr.length > 0).length;
+    const assignedCount = Object.keys(assignments).filter(courseId => {
+        return assignments[courseId] && assignments[courseId].length > 0;
+    }).length;
     const percentAssigned = totalCourses > 0 ? Math.round((assignedCount / totalCourses) * 100) : 0;
     document.getElementById('percentAssigned').textContent = percentAssigned + '%';
     
