@@ -32,6 +32,7 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
@@ -42,6 +43,27 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .year-button {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .year-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
         }
 
         .main-content {
@@ -731,6 +753,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <button class="year-button" onclick="return false;">2026</button>
             <h1>📅 SchedulePro</h1>
             <p>Easy-to-Use Course Scheduling for Event Planners</p>
         </div>
