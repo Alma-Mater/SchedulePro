@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupUnavailabilityFileInput();
     setupScheduleFileInput();
     setupEventsFileInput();
-    setupEventDaysFileInput();
+    // setupEventDaysFileInput(); // Commented out - element removed from HTML (using consolidated Dates.csv)
 });
 
 // Load logs from localStorage
@@ -763,27 +763,46 @@ function toggleStatsDetails() {
 
 // Complete reset - clear all data and start fresh
 function completeReset() {
-    if (confirm('⚠️ WARNING: This will completely reset SchedulePro and clear ALL data including:\n\n• All course assignments\n• All day configurations\n• All saved rounds\n• All change logs\n• All uploads\n\nYou will need to re-upload your CSV files to start over.\n\nAre you sure you want to proceed?')) {
-        // Clear all data structures
-        courses = [];
-        events = [];
-        eventDays = [];
-        instructorUnavailable = [];
-        unavailabilityMap = {};
-        assignments = {};
-        schedule = {};
-        changeLog = [];
-        uploadsLog = [];
-        errorsLog = [];
+    console.log('completeReset function called');
+    
+    const userConfirmed = confirm('⚠️ WARNING: This will completely reset SchedulePro and clear ALL data including:\n\n• All course assignments\n• All day configurations\n• All saved rounds\n• All change logs\n• All uploads\n\nYou will need to re-upload your CSV files to start over.\n\nAre you sure you want to proceed?');
+    
+    console.log('User confirmation result:', userConfirmed);
+    
+    if (userConfirmed === true) {
+        console.log('Reset confirmed - clearing data...');
         
-        // Clear localStorage
-        localStorage.removeItem('schedulepro_round');
-        localStorage.removeItem('schedulepro_changelog');
-        localStorage.removeItem('schedulepro_uploads');
-        localStorage.removeItem('schedulepro_errors');
-        
-        // Refresh the page to reset UI
-        location.reload();
+        try {
+            // Clear all data structures
+            courses = [];
+            events = [];
+            eventDays = [];
+            instructorUnavailable = [];
+            unavailabilityMap = {};
+            assignments = {};
+            schedule = {};
+            changeLog = [];
+            uploadsLog = [];
+            errorsLog = [];
+            
+            console.log('Data structures cleared');
+            
+            // Clear localStorage
+            localStorage.removeItem('schedulepro_round');
+            localStorage.removeItem('schedulepro_changelog');
+            localStorage.removeItem('schedulepro_uploads');
+            localStorage.removeItem('schedulepro_errors');
+            
+            console.log('localStorage cleared');
+            console.log('Reloading page...');
+            
+            // Force reload from server, not cache
+            window.location.href = window.location.href;
+        } catch (error) {
+            console.error('Error during reset:', error);
+        }
+    } else {
+        console.log('Reset cancelled by user');
     }
 }
 
@@ -1505,6 +1524,8 @@ function setupEventsFileInput() {
 // Setup event days file input
 function setupEventDaysFileInput() {
     const fileInput = document.getElementById('eventDaysFile');
+    if (!fileInput) return; // Element doesn't exist (using consolidated Dates.csv)
+    
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
