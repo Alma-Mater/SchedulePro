@@ -317,6 +317,80 @@
             align-items: center;
         }
 
+        /* Reports Section */
+        .reports-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0;
+            margin: 0;
+        }
+
+        .reports-content.expanded {
+            max-height: 800px;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .report-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .report-card h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        .report-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            color: #495057;
+        }
+
+        .report-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .report-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .report-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .workload-bar {
+            display: inline-block;
+            height: 8px;
+            background: #667eea;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
         /* Collapsible Section */
         .collapsible-header {
             display: flex;
@@ -794,6 +868,38 @@
                     <div class="alert alert-info">
                         <strong>Instructions:</strong> Drag each course block to the day slots where it should start. Blocks will snap to valid positions based on course duration.
                     </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div class="section">
+                    <div class="collapsible-header" onclick="toggleReports()">
+                        <div class="section-title no-margin">📊 Reports & Analytics</div>
+                        <div id="reportsToggle">▶ Expand</div>
+                    </div>
+                    <div class="reports-content collapsed" id="reportsContent">
+                        <div class="reports-grid">
+                            <div class="report-card">
+                                <h4>👥 Instructor Workload</h4>
+                                <div id="instructorWorkloadReport"></div>
+                            </div>
+                            <div class="report-card">
+                                <h4>📚 Topic Coverage</h4>
+                                <div id="topicCoverageReport"></div>
+                            </div>
+                            <div class="report-card">
+                                <h4>📅 Event Utilization</h4>
+                                <div id="eventUtilizationReport"></div>
+                            </div>
+                            <div class="report-card">
+                                <h4>📊 Quick Stats</h4>
+                                <div id="quickStatsReport"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swimlanes Section -->
+                <div class="section">
                     <div id="swimlanesContainer">
                         <!-- Swimlanes will be added by JS -->
                     </div>

@@ -927,6 +927,7 @@ function goToConfigureDays() {
     document.getElementById('gridView').classList.remove('active');
     document.getElementById('configureDaysView').classList.add('active');
     renderSwimlanes();
+    updateReports(); // Update reports when entering Configure Days view
 }
 
 // Back to grid view
@@ -1070,6 +1071,7 @@ function addCourseToEvent(eventId, courseId, selectElement) {
     
     // Re-render swimlanes to show the new course
     renderSwimlanes();
+    updateReports(); // Update reports when course is added
 }
 
 // Render a single course swimlane
@@ -1276,6 +1278,7 @@ function handleTimelineDrop(e) {
         // Re-render this swimlane
         renderSwimlanes();
         updateStats();
+        updateReports(); // Update reports after drag/drop
         saveLogs();
         autoSaveRound();
     }
@@ -2034,4 +2037,228 @@ function loadRound() {
     });
     
     input.click();
+}
+
+// Toggle Reports section
+function toggleReports() {
+    const content = document.getElementById('reportsContent');
+    const toggle = document.getElementById('reportsToggle');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        updateReports();
+    }
+}
+
+// Update all reports
+function updateReports() {
+    updateInstructorWorkload();
+    updateTopicCoverage();
+    updateEventUtilization();
+    updateQuickStats();
+}
+
+// Report 1: Instructor Workload
+function updateInstructorWorkload() {
+    const container = document.getElementById('instructorWorkloadReport');
+    
+    // Count courses per instructor
+    const instructorMap = {};
+    courses.forEach(course => {
+        const instructor = course.Instructor;
+        const courseId = course.Course_ID;
+        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        
+        if (!instructorMap[instructor]) {
+            instructorMap[instructor] = { total: 0, assigned: 0 };
+        }
+        instructorMap[instructor].total++;
+        if (isAssigned) {
+            instructorMap[instructor].assigned++;
+        }
+    });
+    
+    // Sort by assigned courses (descending)
+    const sorted = Object.entries(instructorMap).sort((a, b) => b[1].assigned - a[1].assigned);
+    
+    if (sorted.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet.</p>';
+        return;
+    }
+    
+    const maxAssigned = Math.max(...sorted.map(([_, data]) => data.assigned));
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Instructor</th><th>Assigned</th><th>Total</th><th>Workload</th></tr></thead>';
+    html += '<tbody>';
+    
+    sorted.forEach(([instructor, data]) => {
+        const percentage = data.total > 0 ? Math.round((data.assigned / data.total) * 100) : 0;
+        const barWidth = maxAssigned > 0 ? (data.assigned / maxAssigned) * 100 : 0;
+        
+        html += `<tr>
+            <td><strong>${instructor}</strong></td>
+            <td>${data.assigned}</td>
+            <td>${data.total}</td>
+            <td>
+                <span class="workload-bar" style="width: ${barWidth}px;"></span>
+                <span style="margin-left: 5px; color: #6c757d; font-size: 0.9em;">${percentage}%</span>
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Report 2: Topic Coverage
+function updateTopicCoverage() {
+    const container = document.getElementById('topicCoverageReport');
+    
+    // Count courses per topic
+    const topicMap = {};
+    courses.forEach(course => {
+        const topic = course.Topic || 'Uncategorized';
+        const courseId = course.Course_ID;
+        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        
+        if (!topicMap[topic]) {
+            topicMap[topic] = { total: 0, assigned: 0 };
+        }
+        topicMap[topic].total++;
+        if (isAssigned) {
+            topicMap[topic].assigned++;
+        }
+    });
+    
+    // Sort by total courses (descending)
+    const sorted = Object.entries(topicMap).sort((a, b) => b[1].total - a[1].total);
+    
+    if (sorted.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Topic</th><th>Total Courses</th><th>Assigned</th><th>%</th></tr></thead>';
+    html += '<tbody>';
+    
+    sorted.forEach(([topic, data]) => {
+        const percentage = data.total > 0 ? Math.round((data.assigned / data.total) * 100) : 0;
+        
+        html += `<tr>
+            <td><strong>${topic}</strong></td>
+            <td>${data.total}</td>
+            <td>${data.assigned}</td>
+            <td>${percentage}%</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Report 3: Event Utilization
+function updateEventUtilization() {
+    const container = document.getElementById('eventUtilizationReport');
+    
+    if (events.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Event</th><th>Courses</th><th>Days Filled</th><th>Days Empty</th></tr></thead>';
+    html += '<tbody>';
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const totalDays = parseInt(event['Total_Days']);
+        
+        // Count assigned courses
+        const courseCount = schedule[eventId] ? Object.keys(schedule[eventId]).length : 0;
+        
+        // Count filled days
+        let filledDays = 0;
+        for (let day = 1; day <= totalDays; day++) {
+            let hasCourse = false;
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement && placement.days && placement.days.includes(day)) {
+                        hasCourse = true;
+                        break;
+                    }
+                }
+            }
+            if (hasCourse) filledDays++;
+        }
+        
+        const emptyDays = totalDays - filledDays;
+        
+        html += `<tr>
+            <td><strong>${event.Event}</strong></td>
+            <td>${courseCount}</td>
+            <td>${filledDays}</td>
+            <td>${emptyDays}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Report 4: Quick Stats
+function updateQuickStats() {
+    const container = document.getElementById('quickStatsReport');
+    
+    if (courses.length === 0 || events.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">Upload courses and events to see statistics.</p>';
+        return;
+    }
+    
+    // Calculate stats
+    const totalInstructors = new Set(courses.map(c => c.Instructor)).size;
+    const totalTopics = new Set(courses.map(c => c.Topic || 'Uncategorized')).size;
+    
+    const assignedCourses = Object.keys(assignments).filter(courseId => {
+        return assignments[courseId] && assignments[courseId].length > 0;
+    }).length;
+    
+    const avgCoursesPerInstructor = totalInstructors > 0 ? (assignedCourses / totalInstructors).toFixed(1) : 0;
+    
+    // Find most popular topic
+    const topicCounts = {};
+    courses.forEach(course => {
+        const topic = course.Topic || 'Uncategorized';
+        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+    });
+    const mostPopularTopic = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0];
+    
+    let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+    html += `
+        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
+            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${totalInstructors}</div>
+            <div style="color: #6c757d; font-size: 0.9em;">Total Instructors</div>
+        </div>
+        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
+            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${totalTopics}</div>
+            <div style="color: #6c757d; font-size: 0.9em;">Topics Covered</div>
+        </div>
+        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
+            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${avgCoursesPerInstructor}</div>
+            <div style="color: #6c757d; font-size: 0.9em;">Avg Courses/Instructor</div>
+        </div>
+        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
+            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${mostPopularTopic ? mostPopularTopic[0] : 'N/A'}</div>
+            <div style="color: #6c757d; font-size: 0.9em;">Most Popular Topic</div>
+        </div>
+    `;
+    html += '</div>';
+    
+    container.innerHTML = html;
 }
