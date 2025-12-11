@@ -2059,55 +2059,68 @@ function updateReports() {
     updateInstructorWorkload();
     updateTopicCoverage();
     updateEventUtilization();
-    updateQuickStats();
+    updateTopicsPerEvent();
 }
 
-// Report 1: Instructor Workload
+// Report 1: Instructor Workload (Revised)
 function updateInstructorWorkload() {
     const container = document.getElementById('instructorWorkloadReport');
     
-    // Count courses per instructor
+    // Collect data per instructor
     const instructorMap = {};
+    
     courses.forEach(course => {
         const instructor = course.Instructor;
         const courseId = course.Course_ID;
+        const duration = parseFloat(course.Duration_Days) || 0;
         const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        const eventCount = isAssigned ? assignments[courseId].length : 0;
         
         if (!instructorMap[instructor]) {
-            instructorMap[instructor] = { total: 0, assigned: 0 };
+            instructorMap[instructor] = {
+                uniqueCourses: 0,
+                uniqueAssigned: 0,
+                scheduledInstances: 0,
+                totalDays: 0
+            };
         }
-        instructorMap[instructor].total++;
+        
+        instructorMap[instructor].uniqueCourses++;
+        
         if (isAssigned) {
-            instructorMap[instructor].assigned++;
+            instructorMap[instructor].uniqueAssigned++;
+            instructorMap[instructor].scheduledInstances += eventCount;
+            instructorMap[instructor].totalDays += (duration * eventCount);
         }
     });
     
-    // Sort by assigned courses (descending)
-    const sorted = Object.entries(instructorMap).sort((a, b) => b[1].assigned - a[1].assigned);
+    // Sort by scheduled instances (descending)
+    const sorted = Object.entries(instructorMap).sort((a, b) => b[1].scheduledInstances - a[1].scheduledInstances);
     
     if (sorted.length === 0) {
         container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet.</p>';
         return;
     }
     
-    const maxAssigned = Math.max(...sorted.map(([_, data]) => data.assigned));
-    
     let html = '<table class="report-table">';
-    html += '<thead><tr><th>Instructor</th><th>Assigned</th><th>Total</th><th>Workload</th></tr></thead>';
+    html += '<thead><tr>';
+    html += '<th>Instructor</th>';
+    html += '<th>Courses Scheduled (#)</th>';
+    html += '<th>Unique Courses</th>';
+    html += '<th>Total Days</th>';
+    html += '<th>% Assigned</th>';
+    html += '</tr></thead>';
     html += '<tbody>';
     
     sorted.forEach(([instructor, data]) => {
-        const percentage = data.total > 0 ? Math.round((data.assigned / data.total) * 100) : 0;
-        const barWidth = maxAssigned > 0 ? (data.assigned / maxAssigned) * 100 : 0;
+        const percentage = data.uniqueCourses > 0 ? Math.round((data.uniqueAssigned / data.uniqueCourses) * 100) : 0;
         
         html += `<tr>
             <td><strong>${instructor}</strong></td>
-            <td>${data.assigned}</td>
-            <td>${data.total}</td>
-            <td>
-                <span class="workload-bar" style="width: ${barWidth}px;"></span>
-                <span style="margin-left: 5px; color: #6c757d; font-size: 0.9em;">${percentage}%</span>
-            </td>
+            <td>${data.scheduledInstances}</td>
+            <td>${data.uniqueCourses}</td>
+            <td>${Math.round(data.totalDays)}</td>
+            <td>${percentage}%</td>
         </tr>`;
     });
     
@@ -2115,7 +2128,7 @@ function updateInstructorWorkload() {
     container.innerHTML = html;
 }
 
-// Report 2: Topic Coverage
+// Report 2: Topic Coverage (Revised)
 function updateTopicCoverage() {
     const container = document.getElementById('topicCoverageReport');
     
@@ -2144,17 +2157,14 @@ function updateTopicCoverage() {
     }
     
     let html = '<table class="report-table">';
-    html += '<thead><tr><th>Topic</th><th>Total Courses</th><th>Assigned</th><th>%</th></tr></thead>';
+    html += '<thead><tr><th>Topic</th><th>Total Courses in Topic</th><th>Offered Across Events</th></tr></thead>';
     html += '<tbody>';
     
     sorted.forEach(([topic, data]) => {
-        const percentage = data.total > 0 ? Math.round((data.assigned / data.total) * 100) : 0;
-        
         html += `<tr>
             <td><strong>${topic}</strong></td>
             <td>${data.total}</td>
             <td>${data.assigned}</td>
-            <td>${percentage}%</td>
         </tr>`;
     });
     
@@ -2162,7 +2172,7 @@ function updateTopicCoverage() {
     container.innerHTML = html;
 }
 
-// Report 3: Event Utilization
+// Report 3: Event Utilization (Revised with Instructor Count)
 function updateEventUtilization() {
     const container = document.getElementById('eventUtilizationReport');
     
@@ -2172,15 +2182,32 @@ function updateEventUtilization() {
     }
     
     let html = '<table class="report-table">';
-    html += '<thead><tr><th>Event</th><th>Courses</th><th>Days Filled</th><th>Days Empty</th></tr></thead>';
+    html += '<thead><tr><th>Event</th><th>Courses</th><th>Days Filled</th><th>Days Empty</th><th># Instructors</th></tr></thead>';
     html += '<tbody>';
     
     events.forEach(event => {
         const eventId = event.Event_ID;
         const totalDays = parseInt(event['Total_Days']);
         
-        // Count assigned courses
-        const courseCount = schedule[eventId] ? Object.keys(schedule[eventId]).length : 0;
+        // Get courses assigned to this event
+        const assignedCourseIds = [];
+        courses.forEach(course => {
+            if (assignments[course.Course_ID] && assignments[course.Course_ID].includes(eventId)) {
+                assignedCourseIds.push(course.Course_ID);
+            }
+        });
+        
+        const courseCount = assignedCourseIds.length;
+        
+        // Count unique instructors at this event
+        const instructorsSet = new Set();
+        assignedCourseIds.forEach(courseId => {
+            const course = courses.find(c => c.Course_ID === courseId);
+            if (course) {
+                instructorsSet.add(course.Instructor);
+            }
+        });
+        const instructorCount = instructorsSet.size;
         
         // Count filled days
         let filledDays = 0;
@@ -2205,6 +2232,7 @@ function updateEventUtilization() {
             <td>${courseCount}</td>
             <td>${filledDays}</td>
             <td>${emptyDays}</td>
+            <td>${instructorCount}</td>
         </tr>`;
     });
     
@@ -2212,53 +2240,71 @@ function updateEventUtilization() {
     container.innerHTML = html;
 }
 
-// Report 4: Quick Stats
-function updateQuickStats() {
-    const container = document.getElementById('quickStatsReport');
+// Report 4: Topics per Event (Cross-Tab)
+function updateTopicsPerEvent() {
+    const container = document.getElementById('topicsPerEventReport');
     
-    if (courses.length === 0 || events.length === 0) {
-        container.innerHTML = '<p style="color: #6c757d;">Upload courses and events to see statistics.</p>';
+    if (events.length === 0 || courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events or courses loaded yet.</p>';
         return;
     }
     
-    // Calculate stats
-    const totalInstructors = new Set(courses.map(c => c.Instructor)).size;
-    const totalTopics = new Set(courses.map(c => c.Topic || 'Uncategorized')).size;
+    // Get all unique topics
+    const allTopics = [...new Set(courses.map(c => c.Topic || 'Uncategorized'))].sort();
     
-    const assignedCourses = Object.keys(assignments).filter(courseId => {
-        return assignments[courseId] && assignments[courseId].length > 0;
-    }).length;
+    // Build cross-tab data
+    const eventTopicData = [];
     
-    const avgCoursesPerInstructor = totalInstructors > 0 ? (assignedCourses / totalInstructors).toFixed(1) : 0;
-    
-    // Find most popular topic
-    const topicCounts = {};
-    courses.forEach(course => {
-        const topic = course.Topic || 'Uncategorized';
-        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        
+        // Count courses per topic for this event
+        const topicCounts = {};
+        allTopics.forEach(topic => {
+            topicCounts[topic] = 0;
+        });
+        
+        courses.forEach(course => {
+            const courseId = course.Course_ID;
+            const courseTopic = course.Topic || 'Uncategorized';
+            
+            // Check if this course is assigned to this event
+            if (assignments[courseId] && assignments[courseId].includes(eventId)) {
+                topicCounts[courseTopic]++;
+            }
+        });
+        
+        eventTopicData.push({
+            eventName,
+            topicCounts
+        });
     });
-    const mostPopularTopic = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0];
     
-    let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-    html += `
-        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
-            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${totalInstructors}</div>
-            <div style="color: #6c757d; font-size: 0.9em;">Total Instructors</div>
-        </div>
-        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
-            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${totalTopics}</div>
-            <div style="color: #6c757d; font-size: 0.9em;">Topics Covered</div>
-        </div>
-        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
-            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${avgCoursesPerInstructor}</div>
-            <div style="color: #6c757d; font-size: 0.9em;">Avg Courses/Instructor</div>
-        </div>
-        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px;">
-            <div style="font-size: 1.5em; font-weight: 700; color: #667eea;">${mostPopularTopic ? mostPopularTopic[0] : 'N/A'}</div>
-            <div style="color: #6c757d; font-size: 0.9em;">Most Popular Topic</div>
-        </div>
-    `;
-    html += '</div>';
+    // Build table with horizontal scroll for many topics
+    let html = '<div style="overflow-x: auto;">';
+    html += '<table class="report-table" style="min-width: 600px;">';
+    html += '<thead><tr><th style="position: sticky; left: 0; background: #f8f9fa; z-index: 1;">Event</th>';
     
+    allTopics.forEach(topic => {
+        html += `<th>${topic}</th>`;
+    });
+    
+    html += '</tr></thead><tbody>';
+    
+    eventTopicData.forEach(row => {
+        html += '<tr>';
+        html += `<td style="position: sticky; left: 0; background: white; font-weight: 600;">${row.eventName}</td>`;
+        
+        allTopics.forEach(topic => {
+            const count = row.topicCounts[topic];
+            const cellStyle = count > 0 ? 'background: #e7f3ff;' : '';
+            html += `<td style="text-align: center; ${cellStyle}">${count}</td>`;
+        });
+        
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 }
