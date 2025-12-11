@@ -549,16 +549,15 @@ function calculateUnavailabilityMap() {
             const eventName = event.Event;
             const totalDays = parseInt(event['Total_Days']);
             
-            // Get the actual dates for this event
-            const days = eventDays.filter(d => 
-                d.Event.toLowerCase().includes(eventName.toLowerCase().split('-')[0])
-            ).slice(0, totalDays);
+            // Get the actual dates for this event - match by Event_ID for accuracy
+            const days = eventDays.filter(d => d.Event_ID === eventId);
             
             const blockedDays = [];
             
             // Check each day of the event
             days.forEach((day, index) => {
-                const dayDate = new Date(day.Date);
+                if (!day.Day_Date) return; // Skip if no date
+                const dayDate = new Date(day.Day_Date);
                 
                 // If this day falls within unavailability period
                 if (dayDate >= startDate && dayDate <= endDate) {
