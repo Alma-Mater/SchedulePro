@@ -1515,6 +1515,11 @@ function setupEventsFileInput() {
             alert(`Loaded ${events.length} events (you may need to upload event_days.csv separately)`);
         }
         
+        // Recalculate unavailability map if instructor unavailability was already loaded
+        if (instructorUnavailable.length > 0) {
+            calculateUnavailabilityMap();
+        }
+        
         renderAssignmentGrid();
         updateStats();
         autoSaveRound();
