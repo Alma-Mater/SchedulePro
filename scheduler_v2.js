@@ -654,7 +654,17 @@ function renderAssignmentGrid() {
         const tdCourse = document.createElement('td');
         tdCourse.className = 'course-info';
         tdCourse.innerHTML = `
-            <div class="course-name-cell">${course.Instructor} - ${course.Course_Name}</div>
+            <div class="course-name-cell">
+                ${course.Instructor} - 
+                <span contenteditable="true" 
+                      data-course-id="${course.Course_ID}"
+                      style="outline: none; cursor: text; border-bottom: 1px dashed transparent;"
+                      onblur="updateCourseName('${course.Course_ID}', this.textContent)"
+                      onfocus="this.style.borderBottom='1px dashed #667eea'"
+                      onmouseout="if(document.activeElement !== this) this.style.borderBottom='1px dashed transparent'"
+                      onmouseover="this.style.borderBottom='1px dashed #ccc'"
+                      title="Click to edit course name">${course.Course_Name}</span>
+            </div>
             <div class="course-duration-cell">📏 ${course.Duration_Days} days</div>
         `;
         tr.appendChild(tdCourse);
@@ -744,6 +754,42 @@ function handleAssignmentChange(courseId, eventId, isChecked) {
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
+    autoSaveRound();
+}
+
+// Update course name globally
+function updateCourseName(courseId, newName) {
+    const trimmedName = newName.trim();
+    
+    // Find the course
+    const course = courses.find(c => c.Course_ID === courseId);
+    if (!course) return;
+    
+    const oldName = course.Course_Name;
+    
+    // No change
+    if (trimmedName === oldName || !trimmedName) {
+        // Restore original name if empty
+        renderAssignmentGrid();
+        return;
+    }
+    
+    // Update course name globally
+    course.Course_Name = trimmedName;
+    
+    // Log the change
+    logChange(
+        'Course Name Edit',
+        '',
+        course.Instructor,
+        oldName,
+        trimmedName
+    );
+    
+    // Re-render to show updated name everywhere
+    renderAssignmentGrid();
+    renderSwimlanes();
+    updateReports();
     autoSaveRound();
 }
 
