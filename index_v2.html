@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SchedulePro - Event Course Scheduler</title>
+    <!-- SheetJS library for Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -772,6 +774,11 @@
                         <input type="file" id="unavailableFile" accept=".csv" class="file-input-hidden">
                         <label for="scheduleFile" class="btn btn-success file-label-btn">📅 Import Existing Schedule</label>
                         <input type="file" id="scheduleFile" accept=".csv" class="file-input-hidden">
+                    </div>
+                    <div style="border-top: 2px dashed #dee2e6; padding-top: 15px; margin-top: 15px;">
+                        <label for="excelFile" class="btn btn-primary file-label-btn">📊 Upload Excel File (All-in-One)</label>
+                        <input type="file" id="excelFile" accept=".xlsx,.xls" class="file-input-hidden">
+                        <small style="color: #6c757d; display: block; margin-top: 5px;">Excel file should have tabs: Dates, Courses, Instructor_Away</small>
                     </div>
                     <!-- Template download buttons - hidden for now
                     <div>

@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupUnavailabilityFileInput();
     setupScheduleFileInput();
     setupEventsFileInput();
+    setupExcelFileInput();
     // setupEventDaysFileInput(); // Commented out - element removed from HTML (using consolidated Dates.csv)
 });
 
@@ -348,10 +349,29 @@ function processConsolidatedDates(datesData) {
     eventDays = [];
     
     datesData.forEach(row => {
-        const eventId = row.Event_ID?.trim();
-        const eventName = row.Event?.trim();
-        const firstDay = row.First_Event_Day?.trim();
-        const lastDay = row.Last_Event_Day?.trim();
+        // Handle both CSV strings and Excel data (which may have Date objects, numbers, etc)
+        const eventId = typeof row.Event_ID === 'string' ? row.Event_ID.trim() : String(row.Event_ID || '').trim();
+        const eventName = typeof row.Event === 'string' ? row.Event.trim() : String(row.Event || '').trim();
+        
+        // Handle dates - Excel returns Date objects, CSV returns strings
+        let firstDay = row.First_Event_Day;
+        let lastDay = row.Last_Event_Day;
+        
+        if (firstDay instanceof Date) {
+            // Already a Date object from Excel
+        } else if (typeof firstDay === 'string') {
+            firstDay = firstDay.trim();
+        } else {
+            firstDay = String(firstDay || '').trim();
+        }
+        
+        if (lastDay instanceof Date) {
+            // Already a Date object from Excel
+        } else if (typeof lastDay === 'string') {
+            lastDay = lastDay.trim();
+        } else {
+            lastDay = String(lastDay || '').trim();
+        }
         
         // Only require the 4 essential fields users know when starting fresh
         if (!eventId || !eventName || !firstDay || !lastDay) {
@@ -374,13 +394,18 @@ function processConsolidatedDates(datesData) {
         const totalDays = row.Total_Days && !isNaN(parseInt(row.Total_Days)) ? parseInt(row.Total_Days) : daysDiff;
         
         // Create event entry AFTER validating dates
+        // Handle optional fields from both CSV and Excel
+        const hotelLocation = typeof row.Hotel_Location === 'string' ? row.Hotel_Location.trim() : String(row.Hotel_Location || '').trim();
+        const earlyBirdDate = typeof row.EarlyBird_End_Date === 'string' ? row.EarlyBird_End_Date.trim() : String(row.EarlyBird_End_Date || '').trim();
+        const notes = typeof row.Notes === 'string' ? row.Notes.trim() : String(row.Notes || '').trim();
+        
         events.push({
             Event_ID: eventId,
             Event: eventName,
             Total_Days: totalDays,
-            Hotel_Location: row.Hotel_Location?.trim() || '',
-            EarlyBird_End_Date: row.EarlyBird_End_Date?.trim() || '',
-            Notes: row.Notes?.trim() || ''
+            Hotel_Location: hotelLocation,
+            EarlyBird_End_Date: earlyBirdDate,
+            Notes: notes
         });
         
         let currentDate = new Date(startDate);
@@ -536,6 +561,120 @@ function setupUnavailabilityFileInput() {
         alert(`Loaded unavailability for ${instructorUnavailable.length} entries`);
         
         // Reset file input
+        fileInput.value = '';
+    });
+}
+
+// Setup Excel file input (all-in-one import)
+function setupExcelFileInput() {
+    const fileInput = document.getElementById('excelFile');
+    if (!fileInput) return;
+    
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            let successCount = 0;
+            const errors = [];
+            
+            // Process Dates tab
+            if (workbook.SheetNames.includes('Dates')) {
+                try {
+                    const sheet = workbook.Sheets['Dates'];
+                    // Use cellDates to get proper Date objects, then we'll convert them
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { 
+                        cellDates: true,
+                        raw: false 
+                    });
+                    console.log('Excel Dates data:', jsonData);
+                    processConsolidatedDates(jsonData);
+                    logUpload('Excel: Dates', `${events.length} events loaded from Excel`);
+                    successCount++;
+                } catch (err) {
+                    console.error('Dates tab error:', err);
+                    errors.push(`Dates tab: ${err.message}`);
+                }
+            } else {
+                errors.push('Dates tab: Tab not found in Excel file');
+            }
+            
+            // Process Courses tab
+            if (workbook.SheetNames.includes('Courses')) {
+                try {
+                    const sheet = workbook.Sheets['Courses'];
+                    // Keep raw: true to preserve numbers like Duration_Days
+                    const rawCourses = XLSX.utils.sheet_to_json(sheet, { raw: true });
+                    
+                    // Convert to proper format ensuring Course_ID is string
+                    courses = rawCourses.map(course => ({
+                        Course_ID: String(course.Course_ID || ''),
+                        Course_Name: String(course.Course_Name || ''),
+                        Instructor: String(course.Instructor || ''),
+                        Duration_Days: course.Duration_Days // Keep as number
+                    }));
+                    
+                    console.log('Excel Courses data:', courses.length, 'courses');
+                    logUpload('Excel: Courses', `${courses.length} courses loaded from Excel`);
+                    successCount++;
+                } catch (err) {
+                    console.error('Courses tab error:', err);
+                    errors.push(`Courses tab: ${err.message}`);
+                }
+            } else {
+                errors.push('Courses tab: Tab not found in Excel file');
+            }
+            
+            // Process Instructor_Away tab
+            if (workbook.SheetNames.includes('Instructor_Away')) {
+                try {
+                    const sheet = workbook.Sheets['Instructor_Away'];
+                    // Use cellDates for proper date handling
+                    const rawData = XLSX.utils.sheet_to_json(sheet, { 
+                        cellDates: true,
+                        raw: false 
+                    });
+                    
+                    // Format dates properly
+                    instructorUnavailable = rawData.map(record => ({
+                        Instructor: String(record.Instructor || ''),
+                        Unavailable_Start: record.Unavailable_Start,
+                        Unavailable_End: record.Unavailable_End
+                    }));
+                    
+                    console.log('Excel Instructor_Away data:', instructorUnavailable.length, 'records');
+                    calculateUnavailabilityMap();
+                    logUpload('Excel: Instructor_Away', `${instructorUnavailable.length} unavailability records loaded from Excel`);
+                    successCount++;
+                } catch (err) {
+                    console.error('Instructor_Away tab error:', err);
+                    errors.push(`Instructor_Away tab: ${err.message}`);
+                }
+            } else {
+                errors.push('Instructor_Away tab: Tab not found in Excel file');
+            }
+            
+            // Update UI
+            renderAssignmentGrid();
+            updateStats();
+            updateConfigureDaysButton();
+            autoSaveRound();
+            
+            // Show results
+            let message = `Excel import completed:\n✓ ${successCount} tab(s) imported successfully`;
+            if (errors.length > 0) {
+                message += `\n\n⚠ ${errors.length} error(s):\n${errors.join('\n')}`;
+            }
+            alert(message);
+            
+        } catch (error) {
+            alert('Error reading Excel file: ' + error.message);
+            logError('Excel Import', '', '', '', '', error.message, file.name);
+        }
+        
         fileInput.value = '';
     });
 }
@@ -1763,9 +1902,19 @@ function importSchedule(scheduleData, fileName) {
             return;
         }
         
-        // Parse dates
-        const startDate = new Date(firstDay);
-        const endDate = new Date(lastDay);
+        // Parse dates - force local timezone to avoid date shifts
+        // Split date string and create date with explicit year/month/day to avoid timezone issues
+        const parseLocalDate = (dateStr) => {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+            // Try regular parsing if not YYYY-MM-DD format
+            return new Date(dateStr);
+        };
+        
+        const startDate = parseLocalDate(firstDay);
+        const endDate = parseLocalDate(lastDay);
         
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             errors.push({
@@ -1782,12 +1931,21 @@ function importSchedule(scheduleData, fileName) {
         const match = findEventForDateRange(startDate, endDate);
         
         if (!match) {
+            // Add more detail about available event dates for debugging
+            const eventDatesInfo = events.map(e => {
+                const days = eventDays.filter(d => d.Event_ID === e.Event_ID);
+                if (days.length > 0) {
+                    return `${e.Event}: ${days[0].Day_Date} to ${days[days.length-1].Day_Date}`;
+                }
+                return `${e.Event}: (no days)`;
+            }).join('; ');
+            
             errors.push({
                 Row: index + 2,
                 Course_ID: courseId,
                 First_Day: firstDay,
                 Last_Day: lastDay,
-                Error: 'Dates do not match any event in event_days.csv'
+                Error: `Dates ${firstDay} to ${lastDay} do not match any event. Available events: ${eventDatesInfo}`
             });
             return;
         }
@@ -1849,6 +2007,8 @@ function importSchedule(scheduleData, fileName) {
 
 // Find which event contains the given date range
 function findEventForDateRange(startDate, endDate) {
+    console.log('Looking for date range:', startDate, 'to', endDate);
+    
     for (const event of events) {
         const eventId = event.Event_ID;
         const eventName = event.Event;
@@ -1863,12 +2023,16 @@ function findEventForDateRange(startDate, endDate) {
         const eventStart = new Date(days[0].Day_Date);
         const eventEnd = new Date(days[days.length - 1].Day_Date);
         
+        console.log(`  Checking ${eventName}: ${days[0].Day_Date} (${eventStart}) to ${days[days.length - 1].Day_Date} (${eventEnd})`);
+        
         // Normalize dates to compare by day only (ignore time)
         const normalizeDate = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
         const normStart = normalizeDate(startDate);
         const normEnd = normalizeDate(endDate);
         const normEventStart = normalizeDate(eventStart);
         const normEventEnd = normalizeDate(eventEnd);
+        
+        console.log(`    Normalized: looking for ${normStart.toISOString()} to ${normEnd.toISOString()}, event has ${normEventStart.toISOString()} to ${normEventEnd.toISOString()}`);
         
         if (normStart >= normEventStart && normEnd <= normEventEnd) {
             // Find day numbers by matching dates
