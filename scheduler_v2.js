@@ -1632,7 +1632,7 @@ function exportToExcel() {
     }
     
     // Create CSV content
-    let csv = 'Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Room,Configured\n';
+    let csv = 'Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Room,Conflict,Configured\n';
     
     events.forEach(event => {
         const eventId = event.Event_ID;
@@ -1661,11 +1661,17 @@ function exportToExcel() {
             }
             
             if (coursesOnDay.length === 0) {
-                csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,,No\n`;
+                csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,,,No\n`;
             } else {
                 coursesOnDay.forEach(course => {
                     const roomAssignment = rooms[eventId]?.[course.Course_ID] || '';
-                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},${escapeCSV(roomAssignment)},Yes\n`;
+                    
+                    // Check if instructor is unavailable on this day
+                    const blockedDays = getBlockedDays(course.Instructor, eventId);
+                    const hasConflict = blockedDays.includes(dayNum);
+                    const conflictStatus = hasConflict ? 'YES - Instructor Unavailable' : '';
+                    
+                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},${escapeCSV(roomAssignment)},${escapeCSV(conflictStatus)},Yes\n`;
                 });
             }
         });
