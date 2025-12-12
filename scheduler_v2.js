@@ -743,8 +743,9 @@ function handleAssignmentChange(courseId, eventId, isChecked) {
 // Update configure days button state
 function updateConfigureDaysButton() {
     const btn = document.getElementById('configureDaysBtn');
-    const hasAssignments = Object.values(assignments).some(arr => arr.length > 0);
-    btn.disabled = !hasAssignments;
+    // Always enable - users can add courses via dropdown in Configure Days view
+    const hasData = events.length > 0 && courses.length > 0;
+    btn.disabled = !hasData;
 }
 
 // Toggle stats details panel
