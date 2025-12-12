@@ -880,7 +880,10 @@
                 <div class="section">
                     <div class="flex-space-between">
                         <div class="section-title no-margin">Configure Days for Each Event</div>
-                        <button class="btn btn-secondary" onclick="backToGrid()">⬅️ Back to Grid</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-warning" onclick="exportConflicts()" title="Export all scheduling conflicts to CSV">Export Conflicts</button>
+                            <button class="btn btn-secondary" onclick="backToGrid()">⬅️ Back to Grid</button>
+                        </div>
                     </div>
                     <div class="alert alert-info">
                         <strong>Instructions:</strong> Drag each course block to the day slots where it should start. Blocks will snap to valid positions based on course duration.

@@ -1888,6 +1888,84 @@ function toggleStep1Help() {
     }
 }
 
+// Export all scheduling conflicts to CSV
+function exportConflicts() {
+    const conflicts = [];
+    
+    // Loop through all events and courses to find conflicts
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        
+        courses.forEach(course => {
+            // Only check if course is assigned to this event
+            if (!assignments[course.Course_ID]?.includes(eventId)) return;
+            
+            const placement = schedule[eventId]?.[course.Course_ID];
+            if (!placement?.startDay) return; // Skip unplaced courses
+            
+            // Get blocked days for this instructor at this event
+            const blockedDays = getBlockedDays(course.Instructor, eventId);
+            if (blockedDays.length === 0) return; // No unavailability
+            
+            // Calculate course days
+            const daysNeeded = Math.ceil(parseFloat(course.Duration_Days));
+            const courseDays = [];
+            for (let i = 0; i < daysNeeded; i++) {
+                courseDays.push(placement.startDay + i);
+            }
+            
+            // Check for conflicts
+            const conflictDays = courseDays.filter(day => blockedDays.includes(day));
+            if (conflictDays.length > 0) {
+                // Get actual dates for conflict days
+                const days = eventDays.filter(d => d.Event_ID === eventId);
+                const conflictDates = conflictDays.map(dayNum => {
+                    const day = days.find(d => parseInt(d.Day_Number) === dayNum);
+                    return day ? day.Day_Date : `Day ${dayNum}`;
+                }).join(', ');
+                
+                conflicts.push({
+                    Event: eventName,
+                    Event_ID: eventId,
+                    Course_ID: course.Course_ID,
+                    Course_Name: course.Course_Name,
+                    Instructor: course.Instructor,
+                    Scheduled_Days: `${placement.startDay}-${placement.startDay + daysNeeded - 1}`,
+                    Conflict_Days: conflictDays.join(', '),
+                    Conflict_Dates: conflictDates,
+                    Issue: 'Instructor Unavailable'
+                });
+            }
+        });
+    });
+    
+    if (conflicts.length === 0) {
+        alert('No conflicts found! All courses are scheduled without instructor unavailability issues.');
+        return;
+    }
+    
+    // Generate CSV
+    const headers = ['Event', 'Event_ID', 'Course_ID', 'Course_Name', 'Instructor', 'Scheduled_Days', 'Conflict_Days', 'Conflict_Dates', 'Issue'];
+    const csvRows = [headers.join(',')];
+    
+    conflicts.forEach(conflict => {
+        const row = headers.map(header => {
+            const value = conflict[header] || '';
+            // Escape commas and quotes
+            const escaped = String(value).replace(/"/g, '""');
+            return escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') ? `"${escaped}"` : escaped;
+        });
+        csvRows.push(row.join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadFile(csvContent, `SchedulePro_Conflicts_${timestamp}.csv`, 'text/csv');
+    
+    alert(`Exported ${conflicts.length} conflict(s) to CSV`);
+}
+
 // Helper function to download a file
 function downloadFile(content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });
