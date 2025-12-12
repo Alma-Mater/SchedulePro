@@ -18,12 +18,10 @@ let errorsLog = [];
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadLogs();
-    const hadSavedData = loadRoundData(); // Load saved round data first
+    loadRoundData(); // Load saved round data if it exists
     
-    // Only load default events if no saved data exists
-    if (!hadSavedData) {
-        loadEvents();
-    }
+    // Start with blank slate - no auto-loading of default data
+    // Client must upload their own Dates.csv to begin
     
     setupFileInput();
     setupUnavailabilityFileInput();
@@ -351,10 +349,10 @@ function processConsolidatedDates(datesData) {
         const eventName = row.Event?.trim();
         const firstDay = row.First_Event_Day?.trim();
         const lastDay = row.Last_Event_Day?.trim();
-        const totalDays = parseInt(row.Total_Days);
         
-        // Skip empty rows
-        if (!eventId || !eventName || !firstDay || !lastDay || isNaN(totalDays)) {
+        // Only require the 4 essential fields users know when starting fresh
+        if (!eventId || !eventName || !firstDay || !lastDay) {
+            console.warn('Skipping row - missing required field:', { eventId, eventName, firstDay, lastDay });
             return;
         }
         
@@ -367,6 +365,10 @@ function processConsolidatedDates(datesData) {
             console.warn(`Skipping event ${eventId}: Invalid dates ${firstDay} to ${lastDay}`);
             return;
         }
+        
+        // Auto-calculate Total_Days from date range if not provided
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end
+        const totalDays = row.Total_Days && !isNaN(parseInt(row.Total_Days)) ? parseInt(row.Total_Days) : daysDiff;
         
         // Create event entry AFTER validating dates
         events.push({
@@ -421,7 +423,9 @@ function parseCSV(csvText) {
         const values = parseCSVLine(line);
         const obj = {};
         headers.forEach((header, index) => {
-            obj[header] = values[index] ? values[index].trim() : '';
+            // Handle undefined (missing columns) and empty strings properly
+            const value = values[index];
+            obj[header] = (value !== undefined && value !== null) ? value.trim() : '';
         });
         return obj;
     });
@@ -1482,6 +1486,10 @@ function setupEventsFileInput() {
         const text = await file.text();
         const uploadedData = parseCSV(text);
         
+        console.log('=== DATES CSV UPLOAD ===');
+        console.log('Rows in CSV:', uploadedData.length);
+        console.log('CSV data:', uploadedData);
+        
         if (uploadedData.length === 0) {
             alert('No events found in the file');
             return;
@@ -1492,15 +1500,18 @@ function setupEventsFileInput() {
         
         if (hasConsolidatedFormat) {
             // New format: Process consolidated dates
-            const requiredColumns = ['Event_ID', 'Event', 'First_Event_Day', 'Last_Event_Day', 'Total_Days'];
+            const requiredColumns = ['Event_ID', 'Event', 'First_Event_Day', 'Last_Event_Day'];
             const hasAllColumns = requiredColumns.every(col => col in uploadedData[0]);
             
             if (!hasAllColumns) {
-                alert('CSV must have columns: Event_ID, Event, First_Event_Day, Last_Event_Day, Total_Days\n(and optionally: Hotel_Location, EarlyBird_End_Date, Notes)');
+                alert('CSV must have columns: Event_ID, Event, First_Event_Day, Last_Event_Day\n(Optional columns: Total_Days, Hotel_Location, EarlyBird_End_Date, Notes)');
                 return;
             }
             
+            console.log('Before processing - events:', events.length);
             processConsolidatedDates(uploadedData);
+            console.log('After processing - events:', events.length, events);
+            logUpload('Dates.csv', `${events.length} events with ${eventDays.length} days loaded`);
             alert(`Loaded ${events.length} events with ${eventDays.length} days auto-generated from date ranges`);
         } else {
             // Old format: Just events list
@@ -1513,6 +1524,7 @@ function setupEventsFileInput() {
             }
             
             events = uploadedData;
+            logUpload('Events.csv', `${events.length} events loaded`);
             alert(`Loaded ${events.length} events (you may need to upload event_days.csv separately)`);
         }
         
@@ -1523,6 +1535,7 @@ function setupEventsFileInput() {
         
         renderAssignmentGrid();
         updateStats();
+        updateConfigureDaysButton();
         autoSaveRound();
         
         fileInput.value = '';
