@@ -7,6 +7,7 @@ let instructorUnavailable = []; // Raw unavailability data from CSV
 let unavailabilityMap = {}; // Pre-calculated: { 'Instructor-EventID': [blockedDayNumbers] }
 let assignments = {}; // { courseId: [eventIds] }
 let schedule = {}; // { eventId: { courseId: { startDay, days: [] } } }
+let rooms = {}; // { eventId: { courseId: "Room Name" } }
 let draggedBlock = null;
 let currentTimeline = null;
 
@@ -192,6 +193,7 @@ function autoSaveRound() {
         unavailabilityMap,
         assignments,
         schedule,
+        rooms,
         timestamp: new Date().toISOString()
     };
     localStorage.setItem('schedulepro_autosave', JSON.stringify(roundData));
@@ -210,6 +212,7 @@ function loadRoundData() {
             unavailabilityMap = data.unavailabilityMap || {};
             assignments = data.assignments || {};
             schedule = data.schedule || {};
+            rooms = data.rooms || {};
             
             // Re-render if data was loaded
             if (courses.length > 0 || events.length > 0) {
@@ -785,6 +788,7 @@ function completeReset() {
             unavailabilityMap = {};
             assignments = {};
             schedule = {};
+            rooms = {};
             changeLog = [];
             uploadsLog = [];
             errorsLog = [];
@@ -1131,12 +1135,24 @@ function renderCourseSwimlane(course, eventId, totalDays) {
         unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
     }
     
+    // Get current room assignment
+    const currentRoom = rooms[eventId]?.[courseId] || '';
+    
     return `
         <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}">
             <div class="course-info-sidebar">
                 <div class="course-info-name">${course.Course_Name}</div>
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
+                <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                    <span>🏠 Room:</span>
+                    <input type="text" 
+                           value="${currentRoom}" 
+                           placeholder="Room"
+                           style="width: 80px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85em;"
+                           onchange="updateRoomAssignment('${eventId}', '${courseId}', this.value)"
+                           onclick="event.stopPropagation()">
+                </div>
                 ${unavailWarning}
             </div>
             <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
@@ -1339,6 +1355,34 @@ function showDropIndicator(timeline, startDay, daysNeeded, totalDays) {
     timeline.appendChild(indicator);
 }
 
+// Update room assignment
+function updateRoomAssignment(eventId, courseId, roomName) {
+    // Initialize event object if needed
+    if (!rooms[eventId]) {
+        rooms[eventId] = {};
+    }
+    
+    // Get old value for change log
+    const oldRoom = rooms[eventId][courseId] || '';
+    
+    // Update room assignment
+    rooms[eventId][courseId] = roomName.trim();
+    
+    // Log change
+    const course = courses.find(c => c.Course_ID === courseId);
+    const event = events.find(e => e.Event_ID === eventId);
+    logChange(
+        'Room Assignment',
+        `${event?.Event || eventId}`,
+        course?.Course_Name || courseId,
+        oldRoom || '(none)',
+        roomName.trim() || '(none)'
+    );
+    
+    // Auto-save
+    autoSaveRound();
+}
+
 // Remove course from event
 function removeCourseFromEvent(courseId, eventId) {
     // Get old days before removing
@@ -1393,7 +1437,7 @@ function exportToExcel() {
     }
     
     // Create CSV content
-    let csv = 'Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Configured\n';
+    let csv = 'Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Room,Configured\n';
     
     events.forEach(event => {
         const eventId = event.Event_ID;
@@ -1422,10 +1466,11 @@ function exportToExcel() {
             }
             
             if (coursesOnDay.length === 0) {
-                csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,No\n`;
+                csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,,No\n`;
             } else {
                 coursesOnDay.forEach(course => {
-                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},Yes\n`;
+                    const roomAssignment = rooms[eventId]?.[course.Course_ID] || '';
+                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},${escapeCSV(roomAssignment)},Yes\n`;
                 });
             }
         });
