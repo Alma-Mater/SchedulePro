@@ -971,6 +971,23 @@ function renderSwimlanes() {
             assignments[course.Course_ID]?.includes(eventId)
         );
         
+        // Check if any courses in this event have conflicts
+        let hasEventConflict = false;
+        assignedCourses.forEach(course => {
+            const placement = schedule[eventId]?.[course.Course_ID];
+            if (placement?.startDay) {
+                const blockedDays = getBlockedDays(course.Instructor, eventId);
+                const daysNeeded = Math.ceil(parseFloat(course.Duration_Days));
+                const courseDays = [];
+                for (let i = 0; i < daysNeeded; i++) {
+                    courseDays.push(placement.startDay + i);
+                }
+                if (courseDays.some(day => blockedDays.includes(day))) {
+                    hasEventConflict = true;
+                }
+            }
+        });
+        
         // Show all events, even if no courses assigned (removed return statement)
         
         // Get days for this event
@@ -995,9 +1012,12 @@ function renderSwimlanes() {
         const bodyClass = isExpanded ? 'event-swimlane-body' : 'event-swimlane-body collapsed';
         const toggleText = isExpanded ? '▼ Collapse' : '▶ Expand';
         
+        // Add conflict indicator to header if conflicts exist
+        const conflictIndicator = hasEventConflict ? '<span style="color: #ff9800; font-size: 1.5em; margin-left: 10px;">●●</span>' : '';
+        
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${monthStr}</span>
+                <span>${eventName} ${totalDays} days • ${monthStr}${conflictIndicator}</span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-${eventId}">
