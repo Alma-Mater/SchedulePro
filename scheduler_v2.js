@@ -1072,11 +1072,73 @@ function updateStats() {
         return;
     }
     
-    // 1. Percent of courses assigned to events
-    const assignedCount = Object.keys(assignments).filter(courseId => {
-        return assignments[courseId] && assignments[courseId].length > 0;
-    }).length;
+    // 1. Percent of courses assigned to events - COUNT ONLY courses in the courses array
+    let assignedCount = 0;
+    courses.forEach(course => {
+        if (assignments[course.Course_ID] && assignments[course.Course_ID].length > 0) {
+            assignedCount++;
+        }
+    });
+    
     const percentAssigned = totalCourses > 0 ? Math.round((assignedCount / totalCourses) * 100) : 0;
+    
+    // Enhanced Debug: Show the mismatch
+    console.log(`📊 ASSIGNMENT STATS:`);
+    console.log(`   Total courses in array: ${totalCourses}`);
+    console.log(`   Courses with assignments: ${assignedCount}`);
+    console.log(`   Percentage: ${percentAssigned}%`);
+    console.log(`   Keys in assignments object: ${Object.keys(assignments).length}`);
+    
+    // Check for ALL unassigned courses (both missing from object and empty arrays)
+    const unassignedCourses = courses.filter(course => {
+        return !assignments[course.Course_ID] || assignments[course.Course_ID].length === 0;
+    });
+    
+    // Check for duplicate Course_IDs
+    const courseIdCounts = {};
+    courses.forEach(course => {
+        courseIdCounts[course.Course_ID] = (courseIdCounts[course.Course_ID] || 0) + 1;
+    });
+    const duplicateIds = Object.keys(courseIdCounts).filter(id => courseIdCounts[id] > 1);
+    
+    if (duplicateIds.length > 0) {
+        console.log(`⚠️ DUPLICATE COURSE IDs FOUND (${duplicateIds.length} IDs have duplicates):`);
+        duplicateIds.forEach(id => {
+            const duplicates = courses.filter(c => c.Course_ID === id);
+            console.log(`   Course_ID "${id}" appears ${courseIdCounts[id]} times:`);
+            console.table(duplicates.map(c => ({
+                Course_ID: c.Course_ID,
+                Instructor: c.Instructor,
+                Course_Name: c.Course_Name,
+                Duration: c.Duration_Days,
+                Topic: c.Topic || ''
+            })));
+        });
+    }
+    
+    if (unassignedCourses.length > 0) {
+        console.log(`🚨 ${unassignedCourses.length} UNASSIGNED COURSES FOUND:`);
+        console.table(unassignedCourses.map(c => ({ 
+            Course_ID: c.Course_ID, 
+            Instructor: c.Instructor,
+            Course_Name: c.Course_Name,
+            Duration: c.Duration_Days,
+            Topic: c.Topic || '',
+            Has_Assignment: !!assignments[c.Course_ID],
+            Assignment_Length: assignments[c.Course_ID]?.length || 0
+        })));
+    } else {
+        console.log('✅ All courses are assigned to at least one event');
+    }
+    
+    // Check for assignments that don't have a matching course
+    const assignmentsWithoutCourse = Object.keys(assignments).filter(courseId => {
+        return !courses.find(c => c.Course_ID === courseId);
+    });
+    if (assignmentsWithoutCourse.length > 0) {
+        console.log(`⚠️ ${assignmentsWithoutCourse.length} Course IDs in assignments but NOT in courses array:`, assignmentsWithoutCourse);
+    }
+    
     document.getElementById('percentAssigned').textContent = percentAssigned + '%';
     
     // 2. Percent of event days with at least one course
