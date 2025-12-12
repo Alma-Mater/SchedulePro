@@ -516,25 +516,9 @@
             background: #e7f3ff;
         }
 
+        /* Removed red hashing - conflicts now shown on course blocks instead */
         .day-slot.unavailable {
-            background: repeating-linear-gradient(
-                45deg,
-                #f8d7da,
-                #f8d7da 10px,
-                #f5c2c7 10px,
-                #f5c2c7 20px
-            );
-            color: #842029;
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .day-slot.unavailable::after {
-            content: '❌';
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            font-size: 0.8em;
+            /* No special styling - keep days neutral */
         }
 
         .day-label {
@@ -621,6 +605,15 @@
             position: relative;
             display: inline-block;
             margin: 5px;
+        }
+
+        .course-block.has-conflict {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+        }
+
+        .course-block.has-conflict:hover {
+            background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%) !important;
         }
 
         .course-actions {

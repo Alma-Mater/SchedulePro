@@ -1095,6 +1095,16 @@ function renderCourseSwimlane(course, eventId, totalDays) {
     const blockWidth = (100 / totalDays) * daysNeeded;
     const blockLeft = startDay ? ((startDay - 1) / totalDays) * 100 : null;
     
+    // Check if placed course has conflict with instructor unavailability
+    let hasConflict = false;
+    if (startDay && blockedDays.length > 0) {
+        const courseDays = [];
+        for (let i = 0; i < daysNeeded; i++) {
+            courseDays.push(startDay + i);
+        }
+        hasConflict = courseDays.some(day => blockedDays.includes(day));
+    }
+    
     // Generate unavailability warning if any
     let unavailWarning = '';
     if (blockedDays.length > 0) {
@@ -1110,7 +1120,7 @@ function renderCourseSwimlane(course, eventId, totalDays) {
                 ${unavailWarning}
             </div>
             <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
-                <div class="course-block ${startDay ? '' : 'unplaced'}" 
+                <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
                      data-course-id="${courseId}"
                      data-event-id="${eventId}"
                      data-days-needed="${daysNeeded}"
@@ -1143,23 +1153,7 @@ function setupDragAndDrop() {
         timeline.addEventListener('dragleave', handleTimelineDragLeave);
         timeline.addEventListener('drop', handleTimelineDrop);
         
-        // Mark unavailable day slots
-        const instructor = timeline.dataset.instructor;
-        const eventId = timeline.dataset.eventId;
-        const blockedDaysStr = timeline.dataset.blockedDays;
-        
-        if (blockedDaysStr && blockedDaysStr.length > 0) {
-            const blockedDays = blockedDaysStr.split(',').map(d => parseInt(d));
-            const swimlane = timeline.closest('.event-swimlane');
-            const daySlots = swimlane.querySelectorAll('.day-timeline .day-slot');
-            
-            daySlots.forEach(slot => {
-                const dayNum = parseInt(slot.dataset.dayNum);
-                if (blockedDays.includes(dayNum)) {
-                    slot.classList.add('unavailable');
-                }
-            });
-        }
+        // Conflicts are now shown on course blocks (yellow) instead of day slots (red hashing)
     });
 }
 
