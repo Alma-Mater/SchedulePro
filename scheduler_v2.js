@@ -2209,12 +2209,28 @@ function toggleReports() {
     }
 }
 
+// Toggle Finances section
+function toggleFinances() {
+    const content = document.getElementById('financesContent');
+    const toggle = document.getElementById('financesToggle');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        updateFinances();
+    }
+}
+
 // Update all reports
 function updateReports() {
     updateInstructorWorkload();
     updateTopicCoverage();
     updateEventUtilization();
     updateTopicsPerEvent();
+    updateFinances();
 }
 
 // Report 1: Instructor Workload (Revised)
@@ -2389,6 +2405,74 @@ function updateEventUtilization() {
             <td>${emptyDays}</td>
             <td>${instructorCount}</td>
         </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Update Finances Report
+function updateFinances() {
+    const container = document.getElementById('financesReport');
+    
+    if (!container) return; // Container not in DOM yet
+    
+    if (events.length === 0 || courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events or courses loaded yet.</p>';
+        return;
+    }
+    
+    // Pricing structure based on course duration
+    function getCoursePrice(durationDays) {
+        const duration = parseFloat(durationDays);
+        if (duration <= 0.5) return 518;  // 4 hours
+        if (duration <= 1) return 881;    // 1 day
+        if (duration <= 2) return 1735;   // 2 days
+        if (duration <= 3) return 2427;   // 3 days
+        return 3228;                      // 4+ days
+    }
+    
+    // Seat scenarios
+    const scenarios = [
+        { name: 'Low', seats: 10 },
+        { name: 'Mid', seats: 20 },
+        { name: 'High', seats: 30 }
+    ];
+    
+    let html = '<table class="report-table"><thead><tr>';
+    html += '<th>Event</th>';
+    scenarios.forEach(scenario => {
+        html += `<th>${scenario.name} (${scenario.seats} seats)</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    // Calculate revenue for each event
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        
+        // Find all courses assigned to this event
+        const eventCourses = courses.filter(course => 
+            assignments[course.Course_ID]?.includes(eventId)
+        );
+        
+        // Calculate total revenue per scenario
+        const scenarioRevenues = scenarios.map(scenario => {
+            let totalRevenue = 0;
+            eventCourses.forEach(course => {
+                const price = getCoursePrice(course.Duration_Days);
+                totalRevenue += price * scenario.seats;
+            });
+            return totalRevenue;
+        });
+        
+        html += `<tr>
+            <td><strong>${event.Event}</strong></td>`;
+        
+        scenarioRevenues.forEach(revenue => {
+            html += `<td>$${revenue.toLocaleString()}</td>`;
+        });
+        
+        html += '</tr>';
     });
     
     html += '</tbody></table>';
