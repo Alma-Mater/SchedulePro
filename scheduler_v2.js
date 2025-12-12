@@ -777,14 +777,24 @@ function updateCourseName(courseId, newName) {
     // Update course name globally
     course.Course_Name = trimmedName;
     
-    // Log the change
-    logChange(
-        'Course Name Edit',
-        '',
-        course.Instructor,
-        oldName,
-        trimmedName
-    );
+    // Log the change with proper format
+    const entry = {
+        timestamp: getTimestamp(),
+        action: 'Course Name Edit',
+        courseId: courseId,
+        courseTitle: trimmedName,
+        instructor: course.Instructor,
+        eventId: '',
+        firstDay: '',
+        lastDay: '',
+        oldFirstDay: '',
+        oldLastDay: '',
+        notes: `Renamed from "${oldName}" to "${trimmedName}"`,
+        csiTicket: ''
+    };
+    
+    changeLog.push(entry);
+    saveLogs();
     
     // Re-render to show updated name everywhere
     renderAssignmentGrid();
