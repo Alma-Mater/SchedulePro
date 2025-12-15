@@ -1476,12 +1476,27 @@ function renderCourseSwimlane(course, eventId, totalDays, roomNumber = null) {
         unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
     }
     
+    // Get number of rooms for this event to populate dropdown
+    const numRooms = eventRooms[eventId] || 1;
+    let roomOptions = '';
+    for (let r = 1; r <= numRooms; r++) {
+        roomOptions += `<option value="${r}" ${r === assignedRoom ? 'selected' : ''}>Room ${r}</option>`;
+    }
+    
     return `
         <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}">
             <div class="course-info-sidebar">
                 <div class="course-info-name">${course.Course_Name}</div>
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
+                <div style="margin-top: 8px; display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.9em; color: #667eea;">🚪</span>
+                    <select onchange="changeCourseRoom('${eventId}', '${courseId}', parseInt(this.value))" 
+                            style="flex: 1; padding: 5px; border: 2px solid #667eea; border-radius: 4px; font-size: 0.85em; cursor: pointer; background: white;"
+                            onclick="event.stopPropagation()">
+                        ${roomOptions}
+                    </select>
+                </div>
                 ${unavailWarning}
             </div>
             <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
@@ -1781,6 +1796,53 @@ function addRoom(eventId) {
     logChange('ADD', 'ROOM', eventId, [`Room ${currentRooms + 1} added to ${event?.Event || eventId}`], null);
     
     // Re-render
+    renderSwimlanes();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Change course to a different room
+function changeCourseRoom(eventId, courseId, newRoomNumber) {
+    const placement = schedule[eventId]?.[courseId];
+    if (!placement) {
+        alert('Course not yet placed on timeline. Please drag to days first.');
+        return;
+    }
+    
+    const oldRoom = placement.roomNumber || 1;
+    
+    // Check for room conflicts - is another course already in this room on these days?
+    const roomConflicts = [];
+    if (schedule[eventId]) {
+        for (const otherCourseId in schedule[eventId]) {
+            if (otherCourseId === courseId) continue; // Skip self
+            const otherPlacement = schedule[eventId][otherCourseId];
+            if (otherPlacement.roomNumber === newRoomNumber) {
+                // Check for day overlap
+                const overlap = placement.days.some(day => otherPlacement.days.includes(day));
+                if (overlap) {
+                    const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                    roomConflicts.push(otherCourse?.Course_Name || otherCourseId);
+                }
+            }
+        }
+    }
+    
+    if (roomConflicts.length > 0) {
+        alert(`⚠️ Room ${newRoomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nPlease choose a different room.`);
+        // Re-render to reset dropdown
+        renderSwimlanes();
+        return;
+    }
+    
+    // Update room assignment
+    placement.roomNumber = newRoomNumber;
+    
+    // Log the change
+    const course = courses.find(c => c.Course_ID === courseId);
+    logChange('CHANGE', courseId, eventId, [`Moved from Room ${oldRoom} to Room ${newRoomNumber}`], [`Room ${oldRoom}`]);
+    
+    // Re-render to show in new room lane
     renderSwimlanes();
     saveLogs();
     autoSaveRound();
