@@ -1250,9 +1250,18 @@ function goToConfigureDays() {
     updateReports(); // Update reports when entering Configure Days view
 }
 
+// Go to room capacity view
+function goToRoomCapacity() {
+    document.getElementById('gridView').classList.remove('active');
+    document.getElementById('configureDaysView').classList.remove('active');
+    document.getElementById('roomCapacityView').classList.add('active');
+    renderRoomCapacity();
+}
+
 // Back to grid view
 function backToGrid() {
     document.getElementById('configureDaysView').classList.remove('active');
+    document.getElementById('roomCapacityView').classList.remove('active');
     document.getElementById('gridView').classList.add('active');
     
     // Ensure Step 2 section is expanded when returning from configure days
@@ -1262,6 +1271,77 @@ function backToGrid() {
         step2Content.classList.remove('collapsed');
         step2Toggle.textContent = '▼ Collapse Section';
     }
+}
+
+// Render room capacity table
+function renderRoomCapacity() {
+    const container = document.getElementById('roomCapacityContainer');
+    
+    if (events.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table" style="width: 100%;">';
+    html += '<thead><tr><th>Event</th><th>Room</th><th>Total Days</th><th>Days Occupied</th><th>Days Available</th><th>Available Dates</th></tr></thead>';
+    html += '<tbody>';
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const totalDays = parseInt(event['Total_Days']);
+        const numRooms = eventRooms[eventId] || 1;
+        
+        // Get days for this event
+        const days = eventDays.filter(d => d.Event_ID === eventId).sort((a, b) => parseInt(a.Day_Number) - parseInt(b.Day_Number));
+        
+        // Analyze each room
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            // Track which days are occupied in this room
+            const occupiedDays = new Set();
+            
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement.roomNumber === roomNum && placement.days && placement.days.length > 0) {
+                        placement.days.forEach(day => occupiedDays.add(day));
+                    }
+                }
+            }
+            
+            const daysOccupied = occupiedDays.size;
+            const daysAvailable = totalDays - daysOccupied;
+            
+            // Build list of available dates
+            const availableDatesList = [];
+            for (let day = 1; day <= totalDays; day++) {
+                if (!occupiedDays.has(day)) {
+                    const dayInfo = days.find(d => parseInt(d.Day_Number) === day);
+                    if (dayInfo && dayInfo.Day_Date) {
+                        const date = new Date(dayInfo.Day_Date);
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        availableDatesList.push(`${months[date.getMonth()]} ${date.getDate()}`);
+                    }
+                }
+            }
+            
+            const availableDatesStr = availableDatesList.length > 0 ? availableDatesList.join(', ') : 'None';
+            // Green = fully booked, faded orange = empty or partially booked
+            const rowColor = daysAvailable === 0 ? 'background: #d4edda;' : 'background: rgba(255, 152, 0, 0.15);';
+            
+            html += `<tr style="${rowColor}">
+                <td style="color: black; font-weight: 700;"><strong>${eventName}</strong></td>
+                <td style="color: black; font-weight: 700;">Room ${roomNum}</td>
+                <td style="text-align: center; color: black; font-weight: 700;">${totalDays}</td>
+                <td style="text-align: center; color: black; font-weight: 700;">${daysOccupied}</td>
+                <td style="text-align: center; font-weight: 700; color: black;">${daysAvailable}</td>
+                <td style="color: black; font-weight: 700;">${availableDatesStr}</td>
+            </tr>`;
+        }
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
 }
 
 // Render swimlanes for day configuration

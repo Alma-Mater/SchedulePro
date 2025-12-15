@@ -889,6 +889,9 @@
                             <button class="btn btn-success btn-small" onclick="goToConfigureDays()" id="configureDaysBtn">
                                 ⚙️ Configure Days
                             </button>
+                            <button class="btn btn-info btn-small" onclick="goToRoomCapacity()">
+                                🏢 Room Capacity
+                            </button>
                             <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
                         </div>
                     </div>
@@ -999,6 +1002,23 @@
                     </div>
                 </div>
             </div>
+
+            <!-- View 3: Room Capacity -->
+            <div id="roomCapacityView" class="view">
+                <div class="section">
+                    <div class="flex-space-between">
+                        <div class="section-title no-margin">Room Capacity Overview</div>
+                        <button class="btn btn-secondary" onclick="backToGrid()">← Back to Grid</button>
+                    </div>
+                    <div class="alert alert-info" style="margin-top: 15px;">
+                        <strong>Empty Room-Day Slots:</strong> Shows all available room capacity across all events. Use this to identify which rooms have open days for scheduling additional courses.
+                    </div>
+                    <div id="roomCapacityContainer">
+                        <!-- Table will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
