@@ -1334,6 +1334,20 @@ function renderSwimlanes() {
         // Get number of rooms for this event (default to 1 if not specified)
         const numRooms = eventRooms[eventId] || 1;
         
+        // Calculate room utilization
+        const occupiedRooms = new Set();
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber) {
+                    occupiedRooms.add(placement.roomNumber);
+                }
+            }
+        }
+        const roomsOccupied = occupiedRooms.size;
+        const roomsAvailable = numRooms - roomsOccupied;
+        const roomUtilization = `<span style="color: #ff9800; font-weight: 700;">${roomsOccupied}/${numRooms}</span>`;
+        
         // Build room lanes
         let roomLanesHTML = '';
         for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
@@ -1368,12 +1382,10 @@ function renderSwimlanes() {
         
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${monthStr} • 
+                <span>${eventName} ${totalDays} days • ${monthStr} • Rooms: ${roomUtilization} 
                     <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
-                          style="cursor: pointer; text-decoration: underline; padding: 2px 4px;" 
-                          title="Click to edit room count">
-                        ${numRooms} room${numRooms > 1 ? 's' : ''}
-                    </span>${conflictIndicator}
+                          style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
+                          title="Click to edit room count">✎</span>${conflictIndicator}
                 </span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
