@@ -1314,13 +1314,23 @@ function renderSwimlanes() {
         swimlane.className = 'event-swimlane';
         swimlane.dataset.eventId = eventId;
         
-        // Get month from first event day
+        // Get date range from first and last event days
         const eventFirstDay = days[0];
-        let monthStr = '';
+        const eventLastDay = days[days.length - 1];
+        let dateRangeStr = '';
         if (eventFirstDay && eventFirstDay.Day_Date) {
-            const date = new Date(eventFirstDay.Day_Date);
+            const startDate = new Date(eventFirstDay.Day_Date);
             const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            monthStr = months[date.getMonth()];
+            const monthName = months[startDate.getMonth()];
+            const startDay = startDate.getDate();
+            
+            if (eventLastDay && eventLastDay.Day_Date) {
+                const endDate = new Date(eventLastDay.Day_Date);
+                const endDay = endDate.getDate();
+                dateRangeStr = `${monthName} ${startDay}-${endDay}`;
+            } else {
+                dateRangeStr = `${monthName} ${startDay}`;
+            }
         }
         
         // Determine if this event should be expanded (restore previous state or default collapsed)
@@ -1382,7 +1392,7 @@ function renderSwimlanes() {
         
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${monthStr} • Rooms: ${roomUtilization} 
+                <span>${eventName} ${totalDays} days • ${dateRangeStr} • Rooms: ${roomUtilization} 
                     <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
                           style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
                           title="Click to edit room count">✎</span>${conflictIndicator}
@@ -1415,16 +1425,27 @@ function populateCourseDropdown(eventId, assignedCourses) {
     const dropdown = document.getElementById(`add-course-${eventId}`);
     if (!dropdown) return;
     
+    // Clear existing options except the placeholder
+    while (dropdown.options.length > 1) {
+        dropdown.remove(1);
+    }
+    
     // Get IDs of courses already assigned to this event
     const assignedIds = new Set(assignedCourses.map(c => c.Course_ID));
+    
+    // Debug logging
+    console.log(`📋 Dropdown for ${eventId}: ${courses.length} total courses, ${assignedIds.size} already assigned`);
     
     // Get event info for validation
     const event = events.find(e => e.Event_ID === eventId);
     const totalDays = event ? parseInt(event.Total_Days) : 0;
     
+    let addedCount = 0;
+    
     // Add options for unassigned courses
     courses.forEach(course => {
         if (!assignedIds.has(course.Course_ID)) {
+            addedCount++;
             const option = document.createElement('option');
             option.value = course.Course_ID;
             
@@ -1443,6 +1464,13 @@ function populateCourseDropdown(eventId, assignedCourses) {
             dropdown.appendChild(option);
         }
     });
+    
+    console.log(`   ✅ Added ${addedCount} courses to dropdown`);
+    
+    if (addedCount === 0 && assignedIds.size < courses.length) {
+        console.warn(`   ⚠️ No courses added but ${courses.length - assignedIds.size} should be available!`);
+        console.log('   Assigned IDs:', Array.from(assignedIds));
+    }
 }
 
 // Add a course to an event from dropdown
@@ -1452,12 +1480,25 @@ function addCourseToEvent(eventId, courseId, selectElement) {
     // Call existing assignment handler
     handleAssignmentChange(courseId, eventId, true);
     
+    // Initialize schedule entry with Room 1 (unplaced on timeline)
+    if (!schedule[eventId]) {
+        schedule[eventId] = {};
+    }
+    if (!schedule[eventId][courseId]) {
+        schedule[eventId][courseId] = {
+            startDay: null,
+            days: [],
+            roomNumber: 1  // Default to Room 1
+        };
+    }
+    
     // Reset dropdown to placeholder
     selectElement.value = '';
     
     // Re-render swimlanes to show the new course
     renderSwimlanes();
     updateReports(); // Update reports when course is added
+    autoSaveRound();
 }
 
 // Render a single course swimlane
