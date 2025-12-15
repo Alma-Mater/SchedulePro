@@ -1287,6 +1287,20 @@ function renderSwimlanes() {
             assignments[course.Course_ID]?.includes(eventId)
         );
         
+        // Initialize schedule entries for assigned courses that don't have placement yet
+        assignedCourses.forEach(course => {
+            if (!schedule[eventId]) {
+                schedule[eventId] = {};
+            }
+            if (!schedule[eventId][course.Course_ID]) {
+                schedule[eventId][course.Course_ID] = {
+                    startDay: null,
+                    days: [],
+                    roomNumber: 1  // Default to Room 1
+                };
+            }
+        });
+        
         // Check if any courses in this event have conflicts
         let hasEventConflict = false;
         assignedCourses.forEach(course => {
@@ -1441,6 +1455,7 @@ function populateCourseDropdown(eventId, assignedCourses) {
     const totalDays = event ? parseInt(event.Total_Days) : 0;
     
     let addedCount = 0;
+    const skippedCourses = [];
     
     // Add options for unassigned courses
     courses.forEach(course => {
@@ -1462,14 +1477,19 @@ function populateCourseDropdown(eventId, assignedCourses) {
             
             option.textContent = `${warningIcon}${availWarning}${course.Instructor} - ${course.Course_Name} (${course.Duration_Days} days)`;
             dropdown.appendChild(option);
+        } else {
+            skippedCourses.push({
+                ID: course.Course_ID,
+                Name: course.Course_Name,
+                Instructor: course.Instructor
+            });
         }
     });
     
     console.log(`   ✅ Added ${addedCount} courses to dropdown`);
     
-    if (addedCount === 0 && assignedIds.size < courses.length) {
-        console.warn(`   ⚠️ No courses added but ${courses.length - assignedIds.size} should be available!`);
-        console.log('   Assigned IDs:', Array.from(assignedIds));
+    if (skippedCourses.length > 0) {
+        console.log(`   ⏭️ Skipped ${skippedCourses.length} already-assigned courses:`, skippedCourses);
     }
 }
 
