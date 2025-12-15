@@ -1368,7 +1368,13 @@ function renderSwimlanes() {
         
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${monthStr} • ${numRooms} room${numRooms > 1 ? 's' : ''}${conflictIndicator}</span>
+                <span>${eventName} ${totalDays} days • ${monthStr} • 
+                    <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
+                          style="cursor: pointer; text-decoration: underline; padding: 2px 4px;" 
+                          title="Click to edit room count">
+                        ${numRooms} room${numRooms > 1 ? 's' : ''}
+                    </span>${conflictIndicator}
+                </span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-${eventId}">
@@ -1777,6 +1783,69 @@ function removeCourseFromEvent(courseId, eventId) {
     if (checkbox) {
         checkbox.checked = false;
     }
+    
+    // Re-render
+    renderSwimlanes();
+    updateStats();
+    updateConfigureDaysButton();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Edit room count for an event
+function editRoomCount(eventId, currentCount) {
+    const newCount = prompt(`Set number of rooms for this event:\n(Current: ${currentCount})`, currentCount);
+    if (newCount === null) return; // Cancelled
+    
+    const numRooms = parseInt(newCount);
+    if (isNaN(numRooms) || numRooms < 1) {
+        alert('Please enter a valid number (minimum 1)');
+        return;
+    }
+    
+    if (numRooms === currentCount) return; // No change
+    
+    // If reducing rooms, check for courses in rooms that will be removed
+    if (numRooms < currentCount) {
+        const affectedCourses = [];
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber > numRooms) {
+                    const course = courses.find(c => c.Course_ID === courseId);
+                    affectedCourses.push({
+                        name: course?.Course_Name || courseId,
+                        room: placement.roomNumber
+                    });
+                }
+            }
+        }
+        
+        if (affectedCourses.length > 0) {
+            const details = affectedCourses.map(c => `  • ${c.name} (Room ${c.room})`).join('\n');
+            const proceed = confirm(`⚠️ Warning: ${affectedCourses.length} course(s) are in rooms ${numRooms + 1}-${currentCount}:\n\n${details}\n\nThese courses will be unassigned. Continue?`);
+            if (!proceed) return;
+            
+            // Remove courses from removed rooms
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber > numRooms) {
+                    delete schedule[eventId][courseId];
+                    // Also remove from assignments
+                    if (assignments[courseId]) {
+                        assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Update room count
+    eventRooms[eventId] = numRooms;
+    
+    // Log the change
+    const event = events.find(e => e.Event_ID === eventId);
+    logChange('CHANGE', 'ROOMS', eventId, [`Room count changed from ${currentCount} to ${numRooms} for ${event?.Event || eventId}`], null);
     
     // Re-render
     renderSwimlanes();
