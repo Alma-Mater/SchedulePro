@@ -3,11 +3,12 @@
 let courses = [];
 let events = [];
 let eventDays = [];
+let eventRooms = {}; // { eventId: numberOfRooms } - Number of rooms available per event
 let instructorUnavailable = []; // Raw unavailability data from CSV
 let unavailabilityMap = {}; // Pre-calculated: { 'Instructor-EventID': [blockedDayNumbers] }
 let assignments = {}; // { courseId: [eventIds] }
-let schedule = {}; // { eventId: { courseId: { startDay, days: [] } } }
-let rooms = {}; // { eventId: { courseId: "Room Name" } }
+let schedule = {}; // { eventId: { courseId: { startDay, days: [], roomNumber: 1 } } }
+let rooms = {}; // DEPRECATED - now using roomNumber in schedule
 let draggedBlock = null;
 let currentTimeline = null;
 
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Client must upload their own Dates.csv to begin
     
     setupFileInput();
+    setupRoomsFileInput();
     setupUnavailabilityFileInput();
     setupScheduleFileInput();
     setupEventsFileInput();
@@ -190,6 +192,7 @@ function autoSaveRound() {
         courses,
         events,
         eventDays,
+        eventRooms,
         instructorUnavailable,
         unavailabilityMap,
         assignments,
@@ -209,6 +212,7 @@ function loadRoundData() {
             courses = data.courses || [];
             events = data.events || [];
             eventDays = data.eventDays || [];
+            eventRooms = data.eventRooms || {};
             instructorUnavailable = data.instructorUnavailable || [];
             unavailabilityMap = data.unavailabilityMap || {};
             assignments = data.assignments || {};
@@ -518,6 +522,57 @@ function setupFileInput() {
         
         // Log upload
         logUpload('Courses', file.name, courses.length, 'Success');
+        saveLogs();
+        autoSaveRound();
+        
+        // Reset file input
+        fileInput.value = '';
+    });
+}
+
+// Setup file input for rooms
+function setupRoomsFileInput() {
+    const fileInput = document.getElementById('roomsFile');
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const text = await file.text();
+        const roomsData = parseCSV(text);
+        
+        // Validate
+        if (roomsData.length === 0) {
+            alert('No rooms data found in the file');
+            return;
+        }
+        
+        const requiredColumns = ['Event_ID', 'Number_of_Rooms'];
+        const hasAllColumns = requiredColumns.every(col => col in roomsData[0]);
+        
+        if (!hasAllColumns) {
+            alert('Rooms CSV must have columns: Event_ID, Number_of_Rooms');
+            return;
+        }
+        
+        // Convert to eventRooms object
+        eventRooms = {};
+        roomsData.forEach(row => {
+            const eventId = row.Event_ID?.trim();
+            const numRooms = parseInt(row.Number_of_Rooms);
+            if (eventId && numRooms > 0) {
+                eventRooms[eventId] = numRooms;
+            }
+        });
+        
+        console.log('Rooms loaded:', eventRooms);
+        
+        // Re-render if we already have data
+        if (events.length > 0) {
+            renderSwimlanes();
+        }
+        
+        // Log upload
+        logUpload('Rooms', file.name, Object.keys(eventRooms).length, 'Success');
         saveLogs();
         autoSaveRound();
         
@@ -1276,23 +1331,51 @@ function renderSwimlanes() {
         // Add conflict indicator to header if conflicts exist
         const conflictIndicator = hasEventConflict ? '<span style="color: #ff9800; font-size: 1.5em; margin-left: 10px;">●●</span>' : '';
         
+        // Get number of rooms for this event (default to 1 if not specified)
+        const numRooms = eventRooms[eventId] || 1;
+        
+        // Build room lanes
+        let roomLanesHTML = '';
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            // Get courses assigned to this room
+            const roomCourses = assignedCourses.filter(course => {
+                const placement = schedule[eventId]?.[course.Course_ID];
+                return placement && (placement.roomNumber === roomNum || (!placement.roomNumber && roomNum === 1));
+            });
+            
+            roomLanesHTML += `
+                <div class="room-lane" data-event-id="${eventId}" data-room-number="${roomNum}">
+                    <div class="room-lane-header">
+                        <span>🚪 Room ${roomNum}</span>
+                        <div class="room-actions">
+                            ${roomNum === numRooms && numRooms > 1 ? `<button onclick="removeRoom('${eventId}', ${roomNum}); event.stopPropagation();" title="Remove this room">✗</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="room-timeline-container">
+                        <div class="day-timeline" data-event-id="${eventId}" data-room-number="${roomNum}">
+                            ${days.map((day, index) => `
+                                <div class="day-slot" data-day-num="${day.Day_Number}">
+                                    <div class="day-label">Day ${day.Day_Number}</div>
+                                    <div class="day-date">${day.Day_Date || ''}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${roomCourses.map(course => renderCourseSwimlane(course, eventId, totalDays, roomNum)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlane('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${monthStr}${conflictIndicator}</span>
+                <span>${eventName} ${totalDays} days • ${monthStr} • ${numRooms} room${numRooms > 1 ? 's' : ''}${conflictIndicator}</span>
                 <span id="toggle-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-${eventId}">
-                <div class="day-timeline" data-event-id="${eventId}">
-                    ${days.map((day, index) => `
-                        <div class="day-slot" data-day-num="${day.Day_Number}">
-                            <div class="day-label">Day ${day.Day_Number}</div>
-                            <div class="day-date">${day.Day_Date || ''}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                ${assignedCourses.map(course => renderCourseSwimlane(course, eventId, totalDays)).join('')}
-                <div class="add-course-section">
-                    <select class="add-course-dropdown" id="add-course-${eventId}" onchange="addCourseToEvent('${eventId}', this.value, this)">
+                ${roomLanesHTML}
+                <div class="add-course-section" style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+                    <button class="btn btn-secondary btn-small" onclick="addRoom('${eventId}')">➕ Add Room</button>
+                    <select class="add-course-dropdown" id="add-course-${eventId}" onchange="addCourseToEvent('${eventId}', this.value, this)" style="flex: 1;">
                         <option value="">+ Add Course to Event...</option>
                     </select>
                 </div>
@@ -1360,7 +1443,7 @@ function addCourseToEvent(eventId, courseId, selectElement) {
 }
 
 // Render a single course swimlane
-function renderCourseSwimlane(course, eventId, totalDays) {
+function renderCourseSwimlane(course, eventId, totalDays, roomNumber = null) {
     const courseId = course.Course_ID;
     const duration = parseFloat(course.Duration_Days);
     const daysNeeded = Math.ceil(duration);
@@ -1371,6 +1454,7 @@ function renderCourseSwimlane(course, eventId, totalDays) {
     // Get current placement if exists
     const placement = schedule[eventId]?.[courseId];
     const startDay = placement?.startDay;
+    const assignedRoom = placement?.roomNumber || roomNumber || 1;
     
     // Calculate block width as percentage
     const blockWidth = (100 / totalDays) * daysNeeded;
@@ -1392,27 +1476,15 @@ function renderCourseSwimlane(course, eventId, totalDays) {
         unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
     }
     
-    // Get current room assignment
-    const currentRoom = rooms[eventId]?.[courseId] || '';
-    
     return `
-        <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}">
+        <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}">
             <div class="course-info-sidebar">
                 <div class="course-info-name">${course.Course_Name}</div>
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
-                <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
-                    <span>🏠 Room:</span>
-                    <input type="text" 
-                           value="${currentRoom}" 
-                           placeholder="Room"
-                           style="width: 80px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85em;"
-                           onchange="updateRoomAssignment('${eventId}', '${courseId}', this.value)"
-                           onclick="event.stopPropagation()">
-                </div>
                 ${unavailWarning}
             </div>
-            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
+            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
                 <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
                      data-course-id="${courseId}"
                      data-event-id="${eventId}"
@@ -1548,10 +1620,36 @@ function handleTimelineDrop(e) {
             return;
         }
         
+        // Get room number from the timeline being dropped onto
+        const roomNumber = parseInt(timeline.dataset.roomNumber) || 1;
+        
         // Check if this is a new placement or a change
         const existingPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
         const oldDays = existingPlacement ? existingPlacement.days : null;
+        const oldRoom = existingPlacement ? existingPlacement.roomNumber : null;
         const action = oldDays ? 'CHANGE' : 'ADD';
+        
+        // Check for room conflicts - is another course already in this room on these days?
+        const roomConflicts = [];
+        if (schedule[draggedBlock.eventId]) {
+            for (const otherCourseId in schedule[draggedBlock.eventId]) {
+                if (otherCourseId === draggedBlock.courseId) continue; // Skip self
+                const otherPlacement = schedule[draggedBlock.eventId][otherCourseId];
+                if (otherPlacement.roomNumber === roomNumber) {
+                    // Check for day overlap
+                    const overlap = courseDays.some(day => otherPlacement.days.includes(day));
+                    if (overlap) {
+                        const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                        roomConflicts.push(otherCourse?.Course_Name || otherCourseId);
+                    }
+                }
+            }
+        }
+        
+        if (roomConflicts.length > 0) {
+            alert(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nPlease choose a different room or days.`);
+            return;
+        }
         
         // Save placement
         if (!schedule[draggedBlock.eventId]) {
@@ -1560,7 +1658,8 @@ function handleTimelineDrop(e) {
         
         schedule[draggedBlock.eventId][draggedBlock.courseId] = {
             startDay: snapDay,
-            days: courseDays
+            days: courseDays,
+            roomNumber: roomNumber
         };
         
         // Log the change
@@ -1668,6 +1767,74 @@ function removeCourseFromEvent(courseId, eventId) {
     renderSwimlanes();
     updateStats();
     updateConfigureDaysButton();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Add a room to an event
+function addRoom(eventId) {
+    const currentRooms = eventRooms[eventId] || 1;
+    eventRooms[eventId] = currentRooms + 1;
+    
+    // Log the change
+    const event = events.find(e => e.Event_ID === eventId);
+    logChange('ADD', 'ROOM', eventId, [`Room ${currentRooms + 1} added to ${event?.Event || eventId}`], null);
+    
+    // Re-render
+    renderSwimlanes();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Remove a room from an event
+function removeRoom(eventId, roomNumber) {
+    // Check if any courses are assigned to this room
+    const coursesInRoom = [];
+    if (schedule[eventId]) {
+        for (const courseId in schedule[eventId]) {
+            const placement = schedule[eventId][courseId];
+            if (placement.roomNumber === roomNumber) {
+                const course = courses.find(c => c.Course_ID === courseId);
+                coursesInRoom.push(course?.Course_Name || courseId);
+            }
+        }
+    }
+    
+    if (coursesInRoom.length > 0) {
+        const proceed = confirm(`⚠️ Room ${roomNumber} has ${coursesInRoom.length} course(s) assigned:\n\n${coursesInRoom.join('\n')}\n\nRemoving this room will unassign these courses. Continue?`);
+        if (!proceed) return;
+        
+        // Remove courses from this room
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber === roomNumber) {
+                    delete schedule[eventId][courseId];
+                    // Also remove from assignments
+                    if (assignments[courseId]) {
+                        assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Decrease room count
+    const currentRooms = eventRooms[eventId] || 1;
+    if (currentRooms > 1) {
+        eventRooms[eventId] = currentRooms - 1;
+        
+        // Log the change
+        const event = events.find(e => e.Event_ID === eventId);
+        logChange('REMOVE', 'ROOM', eventId, null, [`Room ${roomNumber} removed from ${event?.Event || eventId}`]);
+        
+        // Re-render
+        renderSwimlanes();
+        updateStats();
+        updateConfigureDaysButton();
+        saveLogs();
+        autoSaveRound();
+    }
 }
 
 // Helper function to escape CSV values
@@ -1726,14 +1893,16 @@ function exportToExcel() {
                 csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},,,,,,No\n`;
             } else {
                 coursesOnDay.forEach(course => {
-                    const roomAssignment = rooms[eventId]?.[course.Course_ID] || '';
+                    // Get room assignment from schedule (new room-based system)
+                    const placement = schedule[eventId]?.[course.Course_ID];
+                    const roomNumber = placement?.roomNumber || '';
                     
                     // Check if instructor is unavailable on this day
                     const blockedDays = getBlockedDays(course.Instructor, eventId);
                     const hasConflict = blockedDays.includes(dayNum);
                     const conflictStatus = hasConflict ? 'YES - Instructor Unavailable' : '';
                     
-                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},${escapeCSV(roomAssignment)},${escapeCSV(conflictStatus)},Yes\n`;
+                    csv += `${escapeCSV(eventId)},${escapeCSV(eventName)},${escapeCSV(dayNum)},${escapeCSV(day.Day_Date)},${escapeCSV(course.Course_ID)},${escapeCSV(course.Instructor)},${escapeCSV(course.Course_Name)},${escapeCSV(course.Duration_Days)},${escapeCSV(roomNumber)},${escapeCSV(conflictStatus)},Yes\n`;
                 });
             }
         });
@@ -2030,9 +2199,13 @@ function importSchedule(scheduleData, fileName) {
             schedule[match.eventId] = {};
         }
         
+        // Get room number from CSV if available (optional column)
+        const roomNumber = row.Room ? parseInt(row.Room) : 1;
+        
         schedule[match.eventId][courseId] = {
             startDay: match.startDayNumber,
-            days: match.dayNumbers
+            days: match.dayNumbers,
+            roomNumber: roomNumber
         };
         
         successCount++;
@@ -2168,6 +2341,25 @@ C004,Diana,Web Design,3.5,Technology
 C005,Edward,Public Speaking,1,Communication`;
     
     downloadFile(template, 'courses_template.csv', 'text/csv');
+}
+
+// Download rooms template
+function downloadRoomsTemplate() {
+    const template = `Event_ID,Number_of_Rooms
+ATL,10
+DFW,8
+DTW,5
+CHI,12
+PHX,10
+STL,8
+PHI,10
+SLC,8
+NYC,15
+CLE,6
+HOU,10
+IND,7`;
+    
+    downloadFile(template, 'rooms_template.csv', 'text/csv');
 }
 
 // Download unavailability template
