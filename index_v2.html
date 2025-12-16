@@ -889,9 +889,6 @@
                             <button class="btn btn-success btn-small" onclick="goToConfigureDays()" id="configureDaysBtn">
                                 ⚙️ Configure Days
                             </button>
-                            <button class="btn btn-info btn-small" onclick="goToRoomCapacity()">
-                                🏢 Room Capacity
-                            </button>
                             <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
                         </div>
                     </div>
@@ -940,6 +937,7 @@
                     <div class="flex-space-between">
                         <div class="section-title no-margin">Configure Days for Each Event</div>
                         <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-info btn-small" onclick="goToRoomCapacity()">🏢 Room View</button>
                             <button class="btn btn-warning" onclick="exportConflicts()" title="Export all scheduling conflicts to CSV">Export Conflicts</button>
                             <button class="btn btn-secondary" onclick="backToGrid()">⬅️ Back to Grid</button>
                         </div>
