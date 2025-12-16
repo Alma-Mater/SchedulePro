@@ -1282,7 +1282,97 @@ function renderRoomCapacity() {
         return;
     }
     
-    let html = '<table class="report-table" style="width: 100%;">';
+    // First, collect all available rooms
+    const availableRooms = [];
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const totalDays = parseInt(event['Total_Days']);
+        const numRooms = eventRooms[eventId] || 1;
+        
+        // Get days for this event
+        const days = eventDays.filter(d => d.Event_ID === eventId).sort((a, b) => parseInt(a.Day_Number) - parseInt(b.Day_Number));
+        
+        // Analyze each room
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            // Track which days are occupied in this room
+            const occupiedDays = new Set();
+            
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement.roomNumber === roomNum && placement.days && placement.days.length > 0) {
+                        placement.days.forEach(day => occupiedDays.add(day));
+                    }
+                }
+            }
+            
+            const daysOccupied = occupiedDays.size;
+            const daysAvailable = totalDays - daysOccupied;
+            
+            // Only include rooms with availability
+            if (daysAvailable > 0) {
+                // Build list of available dates
+                const availableDatesList = [];
+                for (let day = 1; day <= totalDays; day++) {
+                    if (!occupiedDays.has(day)) {
+                        const dayInfo = days.find(d => parseInt(d.Day_Number) === day);
+                        if (dayInfo && dayInfo.Day_Date) {
+                            const date = new Date(dayInfo.Day_Date);
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            availableDatesList.push(`${months[date.getMonth()]} ${date.getDate()}`);
+                        }
+                    }
+                }
+                
+                availableRooms.push({
+                    eventName,
+                    roomNum,
+                    daysAvailable,
+                    availableDates: availableDatesList.join(', ')
+                });
+            }
+        }
+    });
+    
+    // Build HTML starting with available rooms table
+    let html = '';
+    
+    if (availableRooms.length > 0) {
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-top: 0; color: #667eea; cursor: pointer; display: flex; align-items: center; gap: 8px;" 
+                    onclick="document.getElementById('availableRoomsTable').style.display = document.getElementById('availableRoomsTable').style.display === 'none' ? 'block' : 'none'; this.querySelector('.toggle-icon').textContent = this.querySelector('.toggle-icon').textContent === '▼' ? '▶' : '▼';">
+                    <span class="toggle-icon">▼</span>
+                    🟢 Available Rooms (${availableRooms.length})
+                </h3>
+                <div id="availableRoomsTable">
+                    <table class="report-table" style="width: 100%;">
+                        <thead><tr><th>Event</th><th>Room</th><th>Days Available</th><th>Available Dates</th></tr></thead>
+                        <tbody>`;
+        
+        availableRooms.forEach(room => {
+            html += `<tr style="background: rgba(255, 152, 0, 0.15);">
+                <td style="color: black; font-weight: 700;"><strong>${room.eventName}</strong></td>
+                <td style="color: black; font-weight: 700;">Room ${room.roomNum}</td>
+                <td style="text-align: center; font-weight: 700; color: black;">${room.daysAvailable}</td>
+                <td style="color: black; font-weight: 700;">${room.availableDates}</td>
+            </tr>`;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+    } else {
+        html += '<p style="color: #28a745; font-weight: bold; margin-bottom: 20px;">✅ All rooms are fully booked!</p>';
+    }
+    
+    // Now add the full capacity overview
+    html += '<h3 style="color: #667eea;">📊 Full Capacity Overview</h3>';
+    html += '<table class="report-table" style="width: 100%;">';
     html += '<thead><tr><th>Event</th><th>Room</th><th>Total Days</th><th>Days Occupied</th><th>Days Available</th><th>Available Dates</th></tr></thead>';
     html += '<tbody>';
     
@@ -1464,7 +1554,7 @@ function renderSwimlanes() {
             roomLanesHTML += `
                 <div class="room-lane" data-event-id="${eventId}" data-room-number="${roomNum}">
                     <div class="room-lane-header">
-                        <span>🚪 Room ${roomNum}</span>
+                        <span>🏠 Room ${roomNum}</span>
                         <div class="room-actions">
                             ${roomNum === numRooms && numRooms > 1 ? `<button onclick="removeRoom('${eventId}', ${roomNum}); event.stopPropagation();" title="Remove this room">✗</button>` : ''}
                         </div>
@@ -1649,7 +1739,7 @@ function renderCourseSwimlane(course, eventId, totalDays, roomNumber = null) {
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
                 <div style="margin-top: 8px; display: flex; align-items: center; gap: 5px;">
-                    <span style="font-size: 0.9em; color: #667eea;">🚪</span>
+                    <span style="font-size: 0.9em; color: #667eea;">🏠</span>
                     <select onchange="changeCourseRoom('${eventId}', '${courseId}', parseInt(this.value))" 
                             style="flex: 1; padding: 5px; border: 2px solid #667eea; border-radius: 4px; font-size: 0.85em; cursor: pointer; background: white;"
                             onclick="event.stopPropagation()">
