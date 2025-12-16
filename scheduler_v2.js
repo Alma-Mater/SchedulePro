@@ -1325,7 +1325,7 @@ function renderRoomCapacity() {
                 }
             }
             
-            const availableDatesStr = availableDatesList.length > 0 ? availableDatesList.join(', ') : 'None';
+            const availableDatesStr = availableDatesList.length > 0 ? availableDatesList.join(', ') : 'Full';
             // Green = fully booked, faded orange = empty or partially booked
             const rowColor = daysAvailable === 0 ? 'background: #d4edda;' : 'background: rgba(255, 152, 0, 0.15);';
             
