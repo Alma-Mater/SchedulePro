@@ -1,0 +1,9 @@
+ Yes a text field. There will be no CSV to input. Can we add power functions to auto-assign rooms with the following logic or is that too hard: if an event (4 days) has one instructor giving 2, 2 day courses, then naturally they follow each other, and naturally we would like them in the same room throughout the 4 days. Sometimes we may  However, conflict avoidance would be nice. 
+
+https://alma-mater.github.io/SchedulePro/index_v2.html
+
+
+Tabs:
+1) Dates.csv - this contains all events and potential events (matching your existing Dates tab in your Excel file)
+2) Courses.csv - these are the courses and instructors. I have taken the liberty to correct any typos and errors. I will tell you what these were tomorrow.
+3) Instructors_Away_2026.csv - as it sounds. There are many dates in 2025 - not sure if these were typos by the instructors but we can review. 

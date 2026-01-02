@@ -754,6 +754,47 @@
             padding: 10px;
         }
 
+        /* Room Grid Styles */
+        .room-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .room-grid-cell {
+            min-width: 40px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .room-grid-cell:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .room-grid-cell.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .room-grid-cell.selected:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
         .scroll-hint {
             text-align: right;
             color: #667eea;
@@ -889,6 +930,9 @@
                             <button class="btn btn-success btn-small" onclick="goToConfigureDays()" id="configureDaysBtn">
                                 ⚙️ Configure Days
                             </button>
+                            <button class="btn btn-info btn-small" onclick="goToRoomGridView()" id="roomGridBtn">
+                                🏢 Room Grid View
+                            </button>
                             <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
                         </div>
                     </div>
@@ -1013,6 +1057,76 @@
                     </div>
                     <div id="roomCapacityContainer">
                         <!-- Table will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 4: Room Grid Configuration -->
+            <div id="roomGridView" class="view">
+                <div class="section">
+                    <div class="flex-space-between">
+                        <div class="section-title no-margin">Configure Days with Room Grid</div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-info btn-small" onclick="goToRoomCapacity()">🏢 Room View</button>
+                            <button class="btn btn-warning" onclick="exportConflicts()" title="Export all scheduling conflicts to CSV">Export Conflicts</button>
+                            <button class="btn btn-secondary" onclick="backToGrid()">⬅️ Back to Grid</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Instructions:</strong> Drag each course block to the day slots where it should start. Select room by clicking the room number in the grid below each course.
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div class="section">
+                    <div class="collapsible-header" onclick="toggleReports()">
+                        <div class="section-title no-margin">📊 Reports & Analytics</div>
+                        <div id="reportsToggleGrid">▶ Expand</div>
+                    </div>
+                    <div class="reports-content collapsed" id="reportsContentGrid">
+                        <div class="reports-grid">
+                            <div class="report-card">
+                                <h4>👥 Instructor Workload</h4>
+                                <div id="instructorWorkloadReportGrid"></div>
+                            </div>
+                            <div class="report-card">
+                                <h4>📚 Topic Coverage</h4>
+                                <div id="topicCoverageReportGrid"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div class="report-card">
+                                <h4>📅 Event Utilization</h4>
+                                <div id="eventUtilizationReportGrid"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div class="report-card">
+                                <h4>📋 Topics per Event</h4>
+                                <div id="topicsPerEventReportGrid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Finances Section -->
+                <div class="section">
+                    <div class="collapsible-header" onclick="toggleFinances()">
+                        <div class="section-title no-margin">💰 Finances</div>
+                        <div id="financesToggleGrid">▶ Expand</div>
+                    </div>
+                    <div class="reports-content collapsed" id="financesContentGrid">
+                        <div class="report-card">
+                            <h4>Revenue Goals by Event</h4>
+                            <div id="financesReportGrid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swimlanes Section -->
+                <div class="section">
+                    <div id="swimlanesContainerGrid">
+                        <!-- Swimlanes will be added by JS -->
                     </div>
                 </div>
             </div>

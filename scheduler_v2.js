@@ -1246,8 +1246,20 @@ function updateStats() {
 function goToConfigureDays() {
     document.getElementById('gridView').classList.remove('active');
     document.getElementById('configureDaysView').classList.add('active');
+    document.getElementById('roomCapacityView').classList.remove('active');
+    document.getElementById('roomGridView').classList.remove('active');
     renderSwimlanes();
     updateReports(); // Update reports when entering Configure Days view
+}
+
+// Go to room grid view
+function goToRoomGridView() {
+    document.getElementById('gridView').classList.remove('active');
+    document.getElementById('configureDaysView').classList.remove('active');
+    document.getElementById('roomCapacityView').classList.remove('active');
+    document.getElementById('roomGridView').classList.add('active');
+    renderSwimlanesGrid();
+    updateReportsGrid(); // Update reports when entering Room Grid view
 }
 
 // Go to room capacity view
@@ -1255,6 +1267,7 @@ function goToRoomCapacity() {
     document.getElementById('gridView').classList.remove('active');
     document.getElementById('configureDaysView').classList.remove('active');
     document.getElementById('roomCapacityView').classList.add('active');
+    document.getElementById('roomGridView').classList.remove('active');
     renderRoomCapacity();
 }
 
@@ -1262,6 +1275,7 @@ function goToRoomCapacity() {
 function backToGrid() {
     document.getElementById('configureDaysView').classList.remove('active');
     document.getElementById('roomCapacityView').classList.remove('active');
+    document.getElementById('roomGridView').classList.remove('active');
     document.getElementById('gridView').classList.add('active');
     
     // Ensure Step 2 section is expanded when returning from configure days
@@ -2090,8 +2104,18 @@ function editRoomCount(eventId, currentCount) {
     const event = events.find(e => e.Event_ID === eventId);
     logChange('CHANGE', 'ROOMS', eventId, [`Room count changed from ${currentCount} to ${numRooms} for ${event?.Event || eventId}`], null);
     
-    // Re-render
-    renderSwimlanes();
+    // Re-render the appropriate view
+    const roomGridView = document.getElementById('roomGridView');
+    const configureDaysView = document.getElementById('configureDaysView');
+    
+    if (roomGridView && roomGridView.classList.contains('active')) {
+        renderSwimlanesGrid();
+        updateReportsGrid();
+    } else if (configureDaysView && configureDaysView.classList.contains('active')) {
+        renderSwimlanes();
+        updateReports();
+    }
+    
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
@@ -3400,4 +3424,840 @@ function updateTopicsPerEvent() {
     
     html += '</tbody></table></div>';
     container.innerHTML = html;
+}
+
+// ========================================
+// ROOM GRID VIEW FUNCTIONS
+// ========================================
+
+// Update reports for Room Grid view
+function updateReportsGrid() {
+    updateInstructorWorkloadGrid();
+    updateTopicCoverageGrid();
+    updateEventUtilizationGrid();
+    updateTopicsPerEventGrid();
+    updateFinancesGrid();
+}
+
+// Copy all report functions for grid view
+function updateInstructorWorkloadGrid() {
+    const container = document.getElementById('instructorWorkloadReportGrid');
+    if (!container) return;
+    
+    // Reuse the same logic but target different container
+    const instructorMap = {};
+    
+    courses.forEach(course => {
+        const instructor = course.Instructor;
+        const courseId = course.Course_ID;
+        const duration = parseFloat(course.Duration_Days) || 0;
+        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        const eventCount = isAssigned ? assignments[courseId].length : 0;
+        
+        if (!instructorMap[instructor]) {
+            instructorMap[instructor] = {
+                uniqueCourses: 0,
+                uniqueAssigned: 0,
+                scheduledInstances: 0,
+                totalDays: 0
+            };
+        }
+        
+        instructorMap[instructor].uniqueCourses++;
+        
+        if (isAssigned) {
+            instructorMap[instructor].uniqueAssigned++;
+            instructorMap[instructor].scheduledInstances += eventCount;
+            instructorMap[instructor].totalDays += (duration * eventCount);
+        }
+    });
+    
+    const sorted = Object.entries(instructorMap).sort((a, b) => b[1].scheduledInstances - a[1].scheduledInstances);
+    
+    if (sorted.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr>';
+    html += '<th>Instructor</th>';
+    html += '<th>Courses Scheduled (#)</th>';
+    html += '<th>Unique Courses</th>';
+    html += '<th>Total Days</th>';
+    html += '<th>% Assigned</th>';
+    html += '</tr></thead>';
+    html += '<tbody>';
+    
+    sorted.forEach(([instructor, data]) => {
+        const percentage = data.uniqueCourses > 0 ? Math.round((data.uniqueAssigned / data.uniqueCourses) * 100) : 0;
+        
+        html += `<tr>
+            <td><strong>${instructor}</strong></td>
+            <td>${data.scheduledInstances}</td>
+            <td>${data.uniqueCourses}</td>
+            <td>${Math.round(data.totalDays)}</td>
+            <td>${percentage}%</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateTopicCoverageGrid() {
+    const container = document.getElementById('topicCoverageReportGrid');
+    if (!container) return;
+    
+    const topicMap = {};
+    courses.forEach(course => {
+        const topic = course.Topic || 'Uncategorized';
+        const courseId = course.Course_ID;
+        const isAssigned = assignments[courseId] && assignments[courseId].length > 0;
+        
+        if (!topicMap[topic]) {
+            topicMap[topic] = { total: 0, assigned: 0 };
+        }
+        topicMap[topic].total++;
+        if (isAssigned) {
+            topicMap[topic].assigned++;
+        }
+    });
+    
+    const sorted = Object.entries(topicMap).sort((a, b) => b[1].total - a[1].total);
+    
+    if (sorted.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Topic</th><th>Total Courses in Topic</th><th>Offered Across Events</th></tr></thead>';
+    html += '<tbody>';
+    
+    sorted.forEach(([topic, data]) => {
+        html += `<tr>
+            <td><strong>${topic}</strong></td>
+            <td>${data.total}</td>
+            <td>${data.assigned}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateEventUtilizationGrid() {
+    const container = document.getElementById('eventUtilizationReportGrid');
+    if (!container) return;
+    
+    if (events.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events loaded yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Event</th><th>Courses</th><th>Days Filled</th><th>Days Empty</th><th># Instructors</th></tr></thead>';
+    html += '<tbody>';
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const totalDays = parseInt(event['Total_Days']);
+        
+        const assignedCourseIds = [];
+        courses.forEach(course => {
+            if (assignments[course.Course_ID] && assignments[course.Course_ID].includes(eventId)) {
+                assignedCourseIds.push(course.Course_ID);
+            }
+        });
+        
+        const courseCount = assignedCourseIds.length;
+        
+        const instructorsSet = new Set();
+        assignedCourseIds.forEach(courseId => {
+            const course = courses.find(c => c.Course_ID === courseId);
+            if (course) {
+                instructorsSet.add(course.Instructor);
+            }
+        });
+        const instructorCount = instructorsSet.size;
+        
+        let filledDays = 0;
+        for (let day = 1; day <= totalDays; day++) {
+            let hasCourse = false;
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement && placement.days && placement.days.includes(day)) {
+                        hasCourse = true;
+                        break;
+                    }
+                }
+            }
+            if (hasCourse) filledDays++;
+        }
+        
+        const emptyDays = totalDays - filledDays;
+        
+        html += `<tr>
+            <td><strong>${event.Event}</strong></td>
+            <td>${courseCount}</td>
+            <td>${filledDays}</td>
+            <td>${emptyDays}</td>
+            <td>${instructorCount}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateFinancesGrid() {
+    const container = document.getElementById('financesReportGrid');
+    if (!container) return;
+    
+    if (events.length === 0 || courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events or courses loaded yet.</p>';
+        return;
+    }
+    
+    function getCoursePrice(durationDays) {
+        const duration = parseFloat(durationDays);
+        if (duration <= 0.5) return 518;
+        if (duration <= 1) return 881;
+        if (duration <= 2) return 1735;
+        if (duration <= 3) return 2427;
+        return 3228;
+    }
+    
+    const eventRevenue = [];
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        
+        let revenue = 0;
+        let courseCount = 0;
+        
+        courses.forEach(course => {
+            if (assignments[course.Course_ID] && assignments[course.Course_ID].includes(eventId)) {
+                revenue += getCoursePrice(course.Duration_Days);
+                courseCount++;
+            }
+        });
+        
+        eventRevenue.push({
+            event: eventName,
+            revenue,
+            courseCount
+        });
+    });
+    
+    eventRevenue.sort((a, b) => b.revenue - a.revenue);
+    
+    let totalRevenue = eventRevenue.reduce((sum, e) => sum + e.revenue, 0);
+    
+    let html = '<table class="report-table">';
+    html += '<thead><tr><th>Event</th><th>Courses</th><th>Revenue Goal</th></tr></thead>';
+    html += '<tbody>';
+    
+    eventRevenue.forEach(row => {
+        html += `<tr>
+            <td><strong>${row.event}</strong></td>
+            <td>${row.courseCount}</td>
+            <td>$${row.revenue.toLocaleString()}</td>
+        </tr>`;
+    });
+    
+    html += `<tr style="background: #e7f3ff; font-weight: 700;">
+        <td><strong>Total</strong></td>
+        <td>${courses.filter(c => assignments[c.Course_ID] && assignments[c.Course_ID].length > 0).length}</td>
+        <td>$${totalRevenue.toLocaleString()}</td>
+    </tr>`;
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateTopicsPerEventGrid() {
+    const container = document.getElementById('topicsPerEventReportGrid');
+    if (!container) return;
+    
+    if (events.length === 0 || courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events or courses loaded yet.</p>';
+        return;
+    }
+    
+    const allTopics = [...new Set(courses.map(c => c.Topic || 'Uncategorized'))].sort();
+    const eventTopicData = [];
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const topicCounts = {};
+        
+        allTopics.forEach(topic => {
+            topicCounts[topic] = 0;
+        });
+        
+        courses.forEach(course => {
+            const courseTopic = course.Topic || 'Uncategorized';
+            const courseId = course.Course_ID;
+            
+            if (assignments[courseId] && assignments[courseId].includes(eventId)) {
+                topicCounts[courseTopic]++;
+            }
+        });
+        
+        eventTopicData.push({
+            eventName,
+            topicCounts
+        });
+    });
+    
+    let html = '<div style="overflow-x: auto;">';
+    html += '<table class="report-table" style="min-width: 600px;">';
+    html += '<thead><tr><th style="position: sticky; left: 0; background: #f8f9fa; z-index: 1;">Event</th>';
+    
+    allTopics.forEach(topic => {
+        html += `<th>${topic}</th>`;
+    });
+    
+    html += '</tr></thead><tbody>';
+    
+    eventTopicData.forEach(row => {
+        html += '<tr>';
+        html += `<td style="position: sticky; left: 0; background: white; font-weight: 600;">${row.eventName}</td>`;
+        
+        allTopics.forEach(topic => {
+            const count = row.topicCounts[topic];
+            const cellStyle = count > 0 ? 'background: #e7f3ff;' : '';
+            html += `<td style="text-align: center; ${cellStyle}">${count}</td>`;
+        });
+        
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// Render swimlanes for room grid view
+function renderSwimlanesGrid() {
+    const container = document.getElementById('swimlanesContainerGrid');
+    
+    // Save current expanded/collapsed state
+    const expandedState = {};
+    document.querySelectorAll('.event-swimlane-body').forEach(body => {
+        const eventId = body.id.replace('body-grid-', '');
+        expandedState[eventId] = !body.classList.contains('collapsed');
+    });
+    
+    container.innerHTML = '';
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const totalDays = parseInt(event['Total_Days']);
+        
+        // Get courses assigned to this event
+        const assignedCourses = courses.filter(course => 
+            assignments[course.Course_ID]?.includes(eventId)
+        );
+        
+        // Initialize schedule entries for assigned courses that don't have placement yet
+        assignedCourses.forEach(course => {
+            if (!schedule[eventId]) {
+                schedule[eventId] = {};
+            }
+            if (!schedule[eventId][course.Course_ID]) {
+                schedule[eventId][course.Course_ID] = {
+                    startDay: null,
+                    days: [],
+                    roomNumber: 1
+                };
+            }
+        });
+        
+        // Check if any courses in this event have conflicts
+        let hasEventConflict = false;
+        assignedCourses.forEach(course => {
+            const placement = schedule[eventId]?.[course.Course_ID];
+            if (placement?.startDay) {
+                const blockedDays = getBlockedDays(course.Instructor, eventId);
+                const daysNeeded = Math.ceil(parseFloat(course.Duration_Days));
+                const courseDays = [];
+                for (let i = 0; i < daysNeeded; i++) {
+                    courseDays.push(placement.startDay + i);
+                }
+                if (courseDays.some(day => blockedDays.includes(day))) {
+                    hasEventConflict = true;
+                }
+            }
+        });
+        
+        // Get days for this event
+        const days = eventDays.filter(d => d.Event_ID === eventId);
+        
+        // Create swimlane
+        const swimlane = document.createElement('div');
+        swimlane.className = 'event-swimlane';
+        swimlane.dataset.eventId = eventId;
+        
+        // Get date range from first and last event days
+        const eventFirstDay = days[0];
+        const eventLastDay = days[days.length - 1];
+        let dateRangeStr = '';
+        if (eventFirstDay && eventFirstDay.Day_Date) {
+            const startDate = new Date(eventFirstDay.Day_Date);
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = months[startDate.getMonth()];
+            const startDay = startDate.getDate();
+            
+            if (eventLastDay && eventLastDay.Day_Date) {
+                const endDate = new Date(eventLastDay.Day_Date);
+                const endDay = endDate.getDate();
+                dateRangeStr = `${monthName} ${startDay}-${endDay}`;
+            } else {
+                dateRangeStr = `${monthName} ${startDay}`;
+            }
+        }
+        
+        // Determine if this event should be expanded
+        const isExpanded = expandedState[eventId] || false;
+        const bodyClass = isExpanded ? 'event-swimlane-body' : 'event-swimlane-body collapsed';
+        const toggleText = isExpanded ? '▼ Collapse' : '▶ Expand';
+        
+        // Add conflict indicator to header if conflicts exist
+        const conflictIndicator = hasEventConflict ? '<span style="color: #ff9800; font-size: 1.5em; margin-left: 10px;">●●</span>' : '';
+        
+        // Get number of rooms for this event
+        const numRooms = eventRooms[eventId] || 1;
+        
+        // Build day timeline (single timeline for all rooms in this view)
+        let dayTimelineHTML = `
+            <div class="day-timeline" data-event-id="${eventId}">
+                ${days.map((day, index) => `
+                    <div class="day-slot" data-day-num="${day.Day_Number}">
+                        <div class="day-label">Day ${day.Day_Number}</div>
+                        <div class="day-date">${day.Day_Date || ''}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        // Build course swimlanes
+        let courseSwimlanesHTML = assignedCourses.map(course => 
+            renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms)
+        ).join('');
+        
+        swimlane.innerHTML = `
+            <div class="event-swimlane-header" onclick="toggleEventSwimlaneGrid('${eventId}')">
+                <span>${eventName} ${totalDays} days • ${dateRangeStr} • Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
+                    <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
+                          style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
+                          title="Click to edit room count">✎</span>${conflictIndicator}
+                </span>
+                <span id="toggle-grid-${eventId}">${toggleText}</span>
+            </div>
+            <div class="${bodyClass}" id="body-grid-${eventId}">
+                ${dayTimelineHTML}
+                ${courseSwimlanesHTML}
+                <div class="add-course-section">
+                    <select class="add-course-dropdown" id="add-course-grid-${eventId}" onchange="addCourseToEventGrid('${eventId}', this.value, this)" style="flex: 1;">
+                        <option value="">+ Add Course to Event...</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(swimlane);
+        
+        // Populate the dropdown with available courses
+        populateCourseDropdownGrid(eventId, assignedCourses);
+    });
+    
+    // Setup drag and drop for all course blocks
+    setupDragAndDropGrid();
+}
+
+// Render a single course swimlane for room grid view
+function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
+    const courseId = course.Course_ID;
+    const duration = parseFloat(course.Duration_Days);
+    const daysNeeded = Math.ceil(duration);
+    
+    // Get blocked days for this instructor at this event
+    const blockedDays = getBlockedDays(course.Instructor, eventId);
+    
+    // Get current placement if exists
+    const placement = schedule[eventId]?.[courseId];
+    const startDay = placement?.startDay;
+    const assignedRoom = placement?.roomNumber || 1;
+    
+    // Calculate block width as percentage
+    const blockWidth = (100 / totalDays) * daysNeeded;
+    const blockLeft = startDay ? ((startDay - 1) / totalDays) * 100 : null;
+    
+    // Check if placed course has conflict with instructor unavailability
+    let hasConflict = false;
+    if (startDay && blockedDays.length > 0) {
+        const courseDays = [];
+        for (let i = 0; i < daysNeeded; i++) {
+            courseDays.push(startDay + i);
+        }
+        hasConflict = courseDays.some(day => blockedDays.includes(day));
+    }
+    
+    // Generate unavailability warning if any
+    let unavailWarning = '';
+    if (blockedDays.length > 0) {
+        unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
+    }
+    
+    // Build room grid
+    let roomGridHTML = '<div class="room-grid">';
+    for (let r = 1; r <= numRooms; r++) {
+        const isSelected = r === assignedRoom ? 'selected' : '';
+        roomGridHTML += `
+            <div class="room-grid-cell ${isSelected}" 
+                 data-room="${r}" 
+                 data-course-id="${courseId}"
+                 data-event-id="${eventId}"
+                 onclick="selectRoomGrid('${eventId}', '${courseId}', ${r})">
+                ${r}
+            </div>
+        `;
+    }
+    roomGridHTML += '</div>';
+    
+    return `
+        <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}">
+            <div class="course-info-sidebar">
+                <div class="course-info-name">${course.Course_Name}</div>
+                <div class="course-info-instructor">${course.Instructor}</div>
+                <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
+                <div style="margin-top: 8px;">
+                    <span style="font-size: 0.9em; color: #667eea; font-weight: 600;">🏠 Room:</span>
+                    ${roomGridHTML}
+                </div>
+                ${unavailWarning}
+            </div>
+            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
+                <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
+                     data-course-id="${courseId}"
+                     data-event-id="${eventId}"
+                     data-days-needed="${daysNeeded}"
+                     draggable="true"
+                     style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 40px; line-height: 40px;` : ''}">
+                    ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}` : 'Drag to timeline'}
+                </div>
+            </div>
+            <div class="course-actions">
+                <button class="btn btn-danger btn-small" onclick="removeCourseFromEventGrid('${courseId}', '${eventId}')">
+                    ✗ Remove
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Room selection handler for grid view
+function selectRoomGrid(eventId, courseId, roomNumber) {
+    if (!schedule[eventId]) {
+        schedule[eventId] = {};
+    }
+    
+    if (!schedule[eventId][courseId]) {
+        schedule[eventId][courseId] = {
+            startDay: null,
+            days: [],
+            roomNumber: roomNumber
+        };
+    } else {
+        // Check if changing room - validate no conflicts
+        const placement = schedule[eventId][courseId];
+        if (placement.startDay && placement.days && placement.days.length > 0) {
+            // Check for room conflicts
+            const roomConflicts = [];
+            if (schedule[eventId]) {
+                for (const otherCourseId in schedule[eventId]) {
+                    if (otherCourseId === courseId) continue;
+                    const otherPlacement = schedule[eventId][otherCourseId];
+                    if (otherPlacement.roomNumber === roomNumber) {
+                        const overlap = placement.days.some(day => otherPlacement.days.includes(day));
+                        if (overlap) {
+                            const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                            roomConflicts.push(otherCourse?.Course_Name || otherCourseId);
+                        }
+                    }
+                }
+            }
+            
+            if (roomConflicts.length > 0) {
+                alert(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nPlease choose a different room or change the days.`);
+                return;
+            }
+        }
+        
+        schedule[eventId][courseId].roomNumber = roomNumber;
+    }
+    
+    // Log the change
+    const course = courses.find(c => c.Course_ID === courseId);
+    logChange('Room Selection', courseId, eventId, `Room ${roomNumber}`, null);
+    
+    // Re-render to show updated selection
+    renderSwimlanesGrid();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Setup drag and drop for room grid view
+function setupDragAndDropGrid() {
+    const blocks = document.querySelectorAll('.course-block');
+    const timelines = document.querySelectorAll('.course-timeline');
+    
+    blocks.forEach(block => {
+        block.addEventListener('dragstart', handleBlockDragStartGrid);
+        block.addEventListener('dragend', handleBlockDragEndGrid);
+    });
+    
+    timelines.forEach(timeline => {
+        timeline.addEventListener('dragover', handleTimelineDragOverGrid);
+        timeline.addEventListener('dragleave', handleTimelineDragLeaveGrid);
+        timeline.addEventListener('drop', handleTimelineDropGrid);
+    });
+}
+
+// Drag handlers for grid view - reuse most logic from original
+function handleBlockDragStartGrid(e) {
+    draggedBlock = {
+        courseId: e.target.dataset.courseId,
+        eventId: e.target.dataset.eventId,
+        daysNeeded: parseInt(e.target.dataset.daysNeeded)
+    };
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleBlockDragEndGrid(e) {
+    e.target.classList.remove('dragging');
+    draggedBlock = null;
+    document.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+}
+
+function handleTimelineDragOverGrid(e) {
+    e.preventDefault();
+    
+    if (!draggedBlock) return;
+    
+    const timelineCourseId = e.currentTarget.dataset.courseId;
+    const timelineEventId = e.currentTarget.dataset.eventId;
+    
+    if (timelineCourseId !== draggedBlock.courseId || timelineEventId !== draggedBlock.eventId) {
+        return;
+    }
+    
+    e.dataTransfer.dropEffect = 'move';
+    
+    const timeline = e.currentTarget;
+    const totalDays = parseInt(timeline.dataset.totalDays);
+    const rect = timeline.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const dayWidth = rect.width / totalDays;
+    
+    let targetDay = Math.floor(x / dayWidth) + 1;
+    const snapDay = calculateSnapPosition(targetDay, draggedBlock.daysNeeded, totalDays);
+    
+    if (snapDay !== null) {
+        showDropIndicator(timeline, snapDay, draggedBlock.daysNeeded, totalDays);
+    }
+}
+
+function handleTimelineDragLeaveGrid(e) {
+    const relatedTarget = e.relatedTarget;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+        e.currentTarget.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+    }
+}
+
+function handleTimelineDropGrid(e) {
+    e.preventDefault();
+    
+    if (!draggedBlock) return;
+    
+    const timeline = e.currentTarget;
+    const timelineCourseId = timeline.dataset.courseId;
+    const timelineEventId = timeline.dataset.eventId;
+    
+    if (timelineCourseId !== draggedBlock.courseId || timelineEventId !== draggedBlock.eventId) {
+        return;
+    }
+    
+    const totalDays = parseInt(timeline.dataset.totalDays);
+    const rect = timeline.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const dayWidth = rect.width / totalDays;
+    
+    let targetDay = Math.floor(x / dayWidth) + 1;
+    const snapDay = calculateSnapPosition(targetDay, draggedBlock.daysNeeded, totalDays);
+    
+    if (snapDay !== null) {
+        const blockedDaysStr = timeline.dataset.blockedDays || '';
+        const blockedDays = blockedDaysStr.length > 0 ? blockedDaysStr.split(',').map(d => parseInt(d)) : [];
+        
+        const courseDays = [];
+        for (let i = snapDay; i < snapDay + draggedBlock.daysNeeded; i++) {
+            courseDays.push(i);
+        }
+        
+        const hasConflict = courseDays.some(day => blockedDays.includes(day));
+        
+        if (hasConflict) {
+            alert(`Cannot place course on these days. Instructor unavailable on: ${blockedDays.filter(d => courseDays.includes(d)).join(', ')}`);
+            return;
+        }
+        
+        // Get room number from the current assignment
+        const currentPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
+        const roomNumber = currentPlacement?.roomNumber || 1;
+        
+        const existingPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
+        const oldDays = existingPlacement ? existingPlacement.days : null;
+        const action = oldDays ? 'CHANGE' : 'ADD';
+        
+        // Check for room conflicts
+        const roomConflicts = [];
+        if (schedule[draggedBlock.eventId]) {
+            for (const otherCourseId in schedule[draggedBlock.eventId]) {
+                if (otherCourseId === draggedBlock.courseId) continue;
+                const otherPlacement = schedule[draggedBlock.eventId][otherCourseId];
+                if (otherPlacement.roomNumber === roomNumber) {
+                    const overlap = courseDays.some(day => otherPlacement.days.includes(day));
+                    if (overlap) {
+                        const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                        roomConflicts.push(otherCourse?.Course_Name || otherCourseId);
+                    }
+                }
+            }
+        }
+        
+        if (roomConflicts.length > 0) {
+            alert(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nPlease select a different room using the room grid.`);
+            return;
+        }
+        
+        // Save placement
+        if (!schedule[draggedBlock.eventId]) {
+            schedule[draggedBlock.eventId] = {};
+        }
+        
+        schedule[draggedBlock.eventId][draggedBlock.courseId] = {
+            startDay: snapDay,
+            days: courseDays,
+            roomNumber: roomNumber
+        };
+        
+        // Log the change
+        logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays);
+        
+        // Re-render
+        renderSwimlanesGrid();
+        updateStats();
+        updateReportsGrid();
+        saveLogs();
+        autoSaveRound();
+    }
+}
+
+// Populate course dropdown for room grid view
+function populateCourseDropdownGrid(eventId, assignedCourses) {
+    const dropdown = document.getElementById(`add-course-grid-${eventId}`);
+    if (!dropdown) return;
+    
+    while (dropdown.options.length > 1) {
+        dropdown.remove(1);
+    }
+    
+    const assignedIds = new Set(assignedCourses.map(c => c.Course_ID));
+    const event = events.find(e => e.Event_ID === eventId);
+    const totalDays = event ? parseInt(event.Total_Days) : 0;
+    
+    courses.forEach(course => {
+        if (!assignedIds.has(course.Course_ID)) {
+            const option = document.createElement('option');
+            option.value = course.Course_ID;
+            
+            const duration = parseFloat(course.Duration_Days);
+            const daysNeeded = Math.ceil(duration);
+            
+            const warningIcon = daysNeeded > totalDays ? '⚠️ ' : '';
+            const blockedDays = getBlockedDays(course.Instructor, eventId);
+            const availableDays = totalDays - blockedDays.length;
+            const availWarning = availableDays < daysNeeded ? '❌ ' : '';
+            
+            option.textContent = `${warningIcon}${availWarning}${course.Instructor} - ${course.Course_Name} (${course.Duration_Days} days)`;
+            dropdown.appendChild(option);
+        }
+    });
+}
+
+// Add course to event from dropdown in grid view
+function addCourseToEventGrid(eventId, courseId, selectElement) {
+    if (!courseId) return;
+    
+    handleAssignmentChange(courseId, eventId, true);
+    
+    if (!schedule[eventId]) {
+        schedule[eventId] = {};
+    }
+    if (!schedule[eventId][courseId]) {
+        schedule[eventId][courseId] = {
+            startDay: null,
+            days: [],
+            roomNumber: 1
+        };
+    }
+    
+    selectElement.value = '';
+    
+    renderSwimlanesGrid();
+    updateReportsGrid();
+    autoSaveRound();
+}
+
+// Remove course from event in grid view
+function removeCourseFromEventGrid(courseId, eventId) {
+    const oldDays = schedule[eventId]?.[courseId]?.days || null;
+    
+    if (assignments[courseId]) {
+        assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
+    }
+    
+    if (schedule[eventId]) {
+        delete schedule[eventId][courseId];
+    }
+    
+    logChange('REMOVE', courseId, eventId, null, oldDays);
+    
+    const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    renderSwimlanesGrid();
+    updateStats();
+    updateConfigureDaysButton();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Toggle event swimlane in grid view
+function toggleEventSwimlaneGrid(eventId) {
+    const body = document.getElementById(`body-grid-${eventId}`);
+    const toggle = document.getElementById(`toggle-grid-${eventId}`);
+    
+    const isCollapsed = body.classList.toggle('collapsed');
+    toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
 }
