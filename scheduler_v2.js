@@ -3846,6 +3846,84 @@ function renderSwimlanesGrid() {
             </div>
         `;
         
+        // Calculate room availability for each room
+        const roomAvailability = {};
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            roomAvailability[roomNum] = new Set();
+            // Initially all days are available
+            for (let day = 1; day <= totalDays; day++) {
+                roomAvailability[roomNum].add(day);
+            }
+        }
+        
+        // Remove occupied days from availability
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber && placement.days && placement.days.length > 0) {
+                    placement.days.forEach(day => {
+                        roomAvailability[placement.roomNumber]?.delete(day);
+                    });
+                }
+            }
+        }
+        
+        // Build room availability bars
+        let roomAvailabilityHTML = '';
+        let hasAnyAvailability = false;
+        
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            const availableDays = Array.from(roomAvailability[roomNum]).sort((a, b) => a - b);
+            if (availableDays.length > 0) {
+                hasAnyAvailability = true;
+                
+                // Group consecutive days into ranges
+                const ranges = [];
+                let rangeStart = availableDays[0];
+                let rangeEnd = availableDays[0];
+                
+                for (let i = 1; i < availableDays.length; i++) {
+                    if (availableDays[i] === rangeEnd + 1) {
+                        rangeEnd = availableDays[i];
+                    } else {
+                        ranges.push({ start: rangeStart, end: rangeEnd });
+                        rangeStart = availableDays[i];
+                        rangeEnd = availableDays[i];
+                    }
+                }
+                ranges.push({ start: rangeStart, end: rangeEnd });
+                
+                // Create bars for each range
+                ranges.forEach(range => {
+                    const daysInRange = range.end - range.start + 1;
+                    const blockWidth = (100 / totalDays) * daysInRange;
+                    const blockLeft = ((range.start - 1) / totalDays) * 100;
+                    
+                    roomAvailabilityHTML += `
+                        <div style="display: flex; align-items: center; gap: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px;">
+                            <div style="min-width: 200px; max-width: 200px; font-weight: 700; color: #28a745;">
+                                🟢 Room ${roomNum} Available
+                            </div>
+                            <div style="flex: 1; position: relative; min-height: 40px; background: white; border-radius: 8px; padding: 5px;">
+                                <div style="position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 30px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85em; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
+                                    Days ${range.start}${range.start !== range.end ? `-${range.end}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+        
+        if (hasAnyAvailability) {
+            roomAvailabilityHTML = `
+                <div style="margin: 15px 0; padding: 15px; background: #e7f3e7; border-radius: 8px; border: 2px solid #28a745;">
+                    <div style="font-weight: 700; color: #28a745; margin-bottom: 10px; font-size: 1.1em;">📊 Room Availability</div>
+                    ${roomAvailabilityHTML}
+                </div>
+            `;
+        }
+        
         // Sort courses: blank/unassigned rooms at top, then by room number (1, 2, 3, etc.)
         const sortedCourses = [...assignedCourses].sort((a, b) => {
             const roomA = schedule[eventId]?.[a.Course_ID]?.roomNumber;
@@ -3882,6 +3960,7 @@ function renderSwimlanesGrid() {
             </div>
             <div class="${bodyClass}" id="body-grid-${eventId}">
                 ${dayTimelineHTML}
+                ${roomAvailabilityHTML}
                 ${courseSwimlanesHTML}
                 <div class="add-course-section">
                     <select class="add-course-dropdown" id="add-course-grid-${eventId}" onchange="addCourseToEventGrid('${eventId}', this.value, this)" style="flex: 1;">
