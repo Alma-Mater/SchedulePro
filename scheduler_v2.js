@@ -3846,17 +3846,23 @@ function renderSwimlanesGrid() {
             </div>
         `;
         
-        // Sort courses by room number (null/unassigned first, then 1, 2, 3, etc.)
-        const sortedCourses = assignedCourses.sort((a, b) => {
+        // Sort courses: blank/unassigned rooms at top, then by room number (1, 2, 3, etc.)
+        const sortedCourses = [...assignedCourses].sort((a, b) => {
             const roomA = schedule[eventId]?.[a.Course_ID]?.roomNumber;
             const roomB = schedule[eventId]?.[b.Course_ID]?.roomNumber;
             
-            // Null values (no room selected) go first
-            if (roomA === null && roomB === null) return 0;
-            if (roomA === null) return -1;
-            if (roomB === null) return 1;
+            // Treat null, undefined, and 0 as "no room assigned"
+            const aIsBlank = roomA === null || roomA === undefined || roomA === 0;
+            const bIsBlank = roomB === null || roomB === undefined || roomB === 0;
             
-            // Otherwise sort by room number ascending
+            // Both blank - maintain order
+            if (aIsBlank && bIsBlank) return 0;
+            // A is blank - A comes first (top)
+            if (aIsBlank) return -1;
+            // B is blank - B comes first (top)
+            if (bIsBlank) return 1;
+            
+            // Both have room assignments - sort by room number ascending (1, 2, 3...)
             return roomA - roomB;
         });
         
