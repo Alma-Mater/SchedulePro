@@ -3774,7 +3774,7 @@ function renderSwimlanesGrid() {
                 schedule[eventId][course.Course_ID] = {
                     startDay: null,
                     days: [],
-                    roomNumber: 1
+                    roomNumber: null
                 };
             }
         });
@@ -3893,7 +3893,7 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
     // Get current placement if exists
     const placement = schedule[eventId]?.[courseId];
     const startDay = placement?.startDay;
-    const assignedRoom = placement?.roomNumber || 1;
+    const assignedRoom = placement?.roomNumber || null;
     
     // Calculate block width as percentage
     const blockWidth = (100 / totalDays) * daysNeeded;
@@ -3918,7 +3918,7 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
     // Build room grid
     let roomGridHTML = '<div class="room-grid">';
     for (let r = 1; r <= numRooms; r++) {
-        const isSelected = r === assignedRoom ? 'selected' : '';
+        const isSelected = (assignedRoom !== null && r === assignedRoom) ? 'selected' : '';
         roomGridHTML += `
             <div class="room-grid-cell ${isSelected}" 
                  data-room="${r}" 
@@ -3975,8 +3975,20 @@ function selectRoomGrid(eventId, courseId, roomNumber) {
             roomNumber: roomNumber
         };
     } else {
-        // Check if changing room - validate no conflicts
         const placement = schedule[eventId][courseId];
+        
+        // Toggle: if clicking the same room, deselect it
+        if (placement.roomNumber === roomNumber) {
+            schedule[eventId][courseId].roomNumber = null;
+            const course = courses.find(c => c.Course_ID === courseId);
+            logChange('Room Selection', courseId, eventId, 'None (deselected)', null);
+            renderSwimlanesGrid();
+            saveLogs();
+            autoSaveRound();
+            return;
+        }
+        
+        // Check if changing room - validate no conflicts
         if (placement.startDay && placement.days && placement.days.length > 0) {
             // Check for room conflicts
             const roomConflicts = [];
@@ -4119,9 +4131,15 @@ function handleTimelineDropGrid(e) {
             return;
         }
         
-        // Get room number from the current assignment
+        // Get room number from the current assignment (use room 1 if not selected)
         const currentPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
-        const roomNumber = currentPlacement?.roomNumber || 1;
+        const roomNumber = currentPlacement?.roomNumber ?? 1;
+        
+        // Check if room is selected (not null)
+        if (roomNumber === null || currentPlacement?.roomNumber === null) {
+            alert('⚠️ Please select a room first!\n\nClick a room number below the course to assign it to a room before scheduling days.');
+            return;
+        }
         
         const existingPlacement = schedule[draggedBlock.eventId]?.[draggedBlock.courseId];
         const oldDays = existingPlacement ? existingPlacement.days : null;
@@ -4216,7 +4234,7 @@ function addCourseToEventGrid(eventId, courseId, selectElement) {
         schedule[eventId][courseId] = {
             startDay: null,
             days: [],
-            roomNumber: 1
+            roomNumber: null
         };
     }
     
