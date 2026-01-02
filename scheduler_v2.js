@@ -2574,7 +2574,7 @@ function setupScheduleFileInput() {
         const hasAllColumns = requiredColumns.every(col => col in scheduleData[0]);
         
         if (!hasAllColumns) {
-            alert('CSV must have columns: Course_ID, Duration_Days, First_Day, Last_Day');
+            alert('CSV must have columns: Course_ID, Duration_Days, First_Day, Last_Day (optional: Event_ID, Room_Number)');
             return;
         }
         
@@ -2606,6 +2606,13 @@ function importSchedule(scheduleData, fileName) {
         const durationDays = parseFloat(row.Duration_Days);
         const firstDay = row.First_Day.trim();
         const lastDay = row.Last_Day.trim();
+        
+        // Check if Event_ID is provided (new format)
+        const hasEventId = row.Event_ID && row.Event_ID.trim();
+        
+        // Check if Room_Number is provided (new format)
+        const roomNumberStr = row.Room_Number ? row.Room_Number.trim() : '';
+        const roomNumber = roomNumberStr ? parseInt(roomNumberStr) : null;
         
         // Validate course exists
         if (!courseIds.has(courseId)) {
@@ -2644,27 +2651,75 @@ function importSchedule(scheduleData, fileName) {
             return;
         }
         
-        // Find matching event and day numbers
-        const match = findEventForDateRange(startDate, endDate);
+        // Find matching event - use Event_ID if provided, otherwise match by date range
+        let match;
         
-        if (!match) {
-            // Add more detail about available event dates for debugging
-            const eventDatesInfo = events.map(e => {
-                const days = eventDays.filter(d => d.Event_ID === e.Event_ID);
-                if (days.length > 0) {
-                    return `${e.Event}: ${days[0].Day_Date} to ${days[days.length-1].Day_Date}`;
-                }
-                return `${e.Event}: (no days)`;
-            }).join('; ');
+        if (hasEventId) {
+            const eventId = row.Event_ID.trim();
+            const event = events.find(e => e.Event_ID === eventId);
             
-            errors.push({
-                Row: index + 2,
-                Course_ID: courseId,
-                First_Day: firstDay,
-                Last_Day: lastDay,
-                Error: `Dates ${firstDay} to ${lastDay} do not match any event. Available events: ${eventDatesInfo}`
-            });
-            return;
+            if (!event) {
+                errors.push({
+                    Row: index + 2,
+                    Course_ID: courseId,
+                    First_Day: firstDay,
+                    Last_Day: lastDay,
+                    Error: `Event_ID "${eventId}" not found`
+                });
+                return;
+            }
+            
+            // Find day numbers for this event that match the dates
+            match = findEventDaysForDates(eventId, event.Event, startDate, endDate);
+            
+            if (!match) {
+                errors.push({
+                    Row: index + 2,
+                    Course_ID: courseId,
+                    First_Day: firstDay,
+                    Last_Day: lastDay,
+                    Error: `Dates ${firstDay} to ${lastDay} do not match days in event "${eventId}"`
+                });
+                return;
+            }
+        } else {
+            // Legacy mode: auto-detect event from date range
+            match = findEventForDateRange(startDate, endDate);
+            
+            if (!match) {
+                // Add more detail about available event dates for debugging
+                const eventDatesInfo = events.map(e => {
+                    const days = eventDays.filter(d => d.Event_ID === e.Event_ID);
+                    if (days.length > 0) {
+                        return `${e.Event}: ${days[0].Day_Date} to ${days[days.length-1].Day_Date}`;
+                    }
+                    return `${e.Event}: (no days)`;
+                }).join('; ');
+                
+                errors.push({
+                    Row: index + 2,
+                    Course_ID: courseId,
+                    First_Day: firstDay,
+                    Last_Day: lastDay,
+                    Error: `Dates ${firstDay} to ${lastDay} do not match any event. Available events: ${eventDatesInfo}`
+                });
+                return;
+            }
+        }
+        
+        // Validate room number if provided
+        if (roomNumber !== null) {
+            const eventRoomCount = eventRooms[match.eventId] || 1;
+            if (roomNumber < 1 || roomNumber > eventRoomCount) {
+                errors.push({
+                    Row: index + 2,
+                    Course_ID: courseId,
+                    First_Day: firstDay,
+                    Last_Day: lastDay,
+                    Error: `Room_Number ${roomNumber} is invalid for event "${match.eventName}" (valid range: 1-${eventRoomCount})`
+                });
+                return;
+            }
         }
         
         // Add to assignments and schedule
@@ -2679,9 +2734,6 @@ function importSchedule(scheduleData, fileName) {
             schedule[match.eventId] = {};
         }
         
-        // Get room number from CSV if available (optional column)
-        const roomNumber = row.Room ? parseInt(row.Room) : 1;
-        
         schedule[match.eventId][courseId] = {
             startDay: match.startDayNumber,
             days: match.dayNumbers,
@@ -2692,7 +2744,8 @@ function importSchedule(scheduleData, fileName) {
         imported.push({
             Course_ID: courseId,
             Event: match.eventName,
-            Days: `${match.startDayNumber}-${match.endDayNumber}`
+            Days: `${match.startDayNumber}-${match.endDayNumber}`,
+            Room: roomNumber !== null ? roomNumber : 'Unassigned'
         });
     });
     
@@ -2785,6 +2838,51 @@ function findEventForDateRange(startDate, endDate) {
     }
     
     return null;
+}
+
+// Find day numbers for a specific event given date range
+function findEventDaysForDates(eventId, startDate, endDate) {
+    const event = events.find(e => e.Event_ID === eventId);
+    if (!event) return null;
+    
+    const eventName = event.Event;
+    
+    // Get all days for this event
+    const days = eventDays.filter(d => d.Event_ID === eventId)
+                         .sort((a, b) => a.Day_Number - b.Day_Number);
+    
+    if (days.length === 0) return null;
+    
+    // Normalize dates to compare by day only (ignore time)
+    const normalizeDate = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const normStart = normalizeDate(startDate);
+    const normEnd = normalizeDate(endDate);
+    
+    // Find day numbers by matching dates
+    const startDayNumber = days.find(d => {
+        const dayDate = normalizeDate(new Date(d.Day_Date));
+        return dayDate.getTime() === normStart.getTime();
+    })?.Day_Number;
+    
+    const endDayNumber = days.find(d => {
+        const dayDate = normalizeDate(new Date(d.Day_Date));
+        return dayDate.getTime() === normEnd.getTime();
+    })?.Day_Number;
+    
+    if (!startDayNumber || !endDayNumber) return null;
+    
+    const dayNumbers = [];
+    for (let i = parseInt(startDayNumber); i <= parseInt(endDayNumber); i++) {
+        dayNumbers.push(i);
+    }
+    
+    return {
+        eventId,
+        eventName,
+        startDayNumber: parseInt(startDayNumber),
+        endDayNumber: parseInt(endDayNumber),
+        dayNumbers
+    };
 }
 
 // Download error report CSV
