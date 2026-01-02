@@ -2316,6 +2316,88 @@ function exportToExcel() {
     alert('Schedule exported successfully! Open in Excel to view.');
 }
 
+// Export schedule in import-ready format with Event_ID and Room_Number
+function exportScheduleWithRooms() {
+    if (courses.length === 0) {
+        alert('Please load courses first');
+        return;
+    }
+    
+    if (events.length === 0) {
+        alert('Please load events first');
+        return;
+    }
+    
+    // Create CSV content with format: Course_ID,Duration_Days,First_Day,Last_Day,Event_ID,Room_Number
+    let csv = 'Course_ID,Duration_Days,First_Day,Last_Day,Event_ID,Room_Number\n';
+    
+    // Collect all scheduled courses
+    const scheduledEntries = [];
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                
+                // Only export if course has been scheduled (has days)
+                if (placement.days && placement.days.length > 0) {
+                    const course = courses.find(c => c.Course_ID === courseId);
+                    if (!course) continue;
+                    
+                    // Get first and last days
+                    const sortedDays = [...placement.days].sort((a, b) => a - b);
+                    const firstDayNum = sortedDays[0];
+                    const lastDayNum = sortedDays[sortedDays.length - 1];
+                    
+                    // Get actual dates for these days
+                    const days = eventDays.filter(d => d.Event_ID === eventId);
+                    const firstDayInfo = days.find(d => parseInt(d.Day_Number) === firstDayNum);
+                    const lastDayInfo = days.find(d => parseInt(d.Day_Number) === lastDayNum);
+                    
+                    const firstDate = firstDayInfo?.Day_Date || '';
+                    const lastDate = lastDayInfo?.Day_Date || '';
+                    
+                    // Get room number (blank if not assigned)
+                    const roomNumber = placement.roomNumber || '';
+                    
+                    scheduledEntries.push({
+                        courseId: courseId,
+                        duration: course.Duration_Days,
+                        firstDate: firstDate,
+                        lastDate: lastDate,
+                        eventId: eventId,
+                        roomNumber: roomNumber
+                    });
+                }
+            }
+        }
+    });
+    
+    // Sort by event and course for easier reading
+    scheduledEntries.sort((a, b) => {
+        if (a.eventId !== b.eventId) {
+            return a.eventId.localeCompare(b.eventId);
+        }
+        return a.courseId.localeCompare(b.courseId);
+    });
+    
+    // Build CSV rows
+    scheduledEntries.forEach(entry => {
+        csv += `${escapeCSV(entry.courseId)},${escapeCSV(entry.duration)},${escapeCSV(entry.firstDate)},${escapeCSV(entry.lastDate)},${escapeCSV(entry.eventId)},${escapeCSV(entry.roomNumber)}\n`;
+    });
+    
+    // Add UTF-8 BOM for proper encoding in Excel
+    const BOM = '\ufeff';
+    const csvWithBOM = BOM + csv;
+    
+    // Download as CSV
+    downloadFile(csvWithBOM, 'schedule_import_format.csv', 'text/csv;charset=utf-8');
+    
+    alert('Schedule exported in import format! This CSV includes Event_ID and Room_Number columns and can be re-imported.');
+}
+
 // Save schedule as JSON
 function saveSchedule() {
     if (courses.length === 0) {

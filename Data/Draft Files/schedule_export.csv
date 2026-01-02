@@ -1,0 +1,437 @@
+﻿Event_ID,Event,Day,Date,Course_ID,Instructor,Course_Name,Duration_Days,Room,Conflict,Configured
+EV001,Virtual-Feb,1,2/23/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,0823D,"Joyce Brown, Thomas McCabe",Strategic Portfolio Management,3,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,1132D,Jack Duggal,Become a Changemaker: Transform Organizations,2,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,1421D,Esra Tepeli,AI for Strategic Decisions: Leveraging Analysis,1,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV001,Virtual-Feb,1,2/23/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,0823D,"Joyce Brown, Thomas McCabe",Strategic Portfolio Management,3,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,1132D,Jack Duggal,Become a Changemaker: Transform Organizations,2,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV001,Virtual-Feb,2,2/24/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,0621D,Jack Duggal,Lead Through Uncertainty: Next-Gen Communication Skills,1,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,0672D,Brad Malone,Proactive Risk Management,2,1,YES - Instructor Unavailable,Yes
+EV001,Virtual-Feb,3,2/25/2026,0682D,Michel Thiry,Program Management Adaptive Practices,2,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,0823D,"Joyce Brown, Thomas McCabe",Strategic Portfolio Management,3,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,1892D,Tyson Rydl,Human Design Pattern Thinking,2,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV001,Virtual-Feb,3,2/25/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV001,Virtual-Feb,4,2/26/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV001,Virtual-Feb,4,2/26/2026,0672D,Brad Malone,Proactive Risk Management,2,1,YES - Instructor Unavailable,Yes
+EV001,Virtual-Feb,4,2/26/2026,0682D,Michel Thiry,Program Management Adaptive Practices,2,1,,Yes
+EV001,Virtual-Feb,4,2/26/2026,1074H,Kathy Mendias,  Communication GPS: Keep Your Project on Track,0.5,1,,Yes
+EV001,Virtual-Feb,4,2/26/2026,1892D,Tyson Rydl,Human Design Pattern Thinking,2,1,,Yes
+EV001,Virtual-Feb,4,2/26/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0541D,Thomas Jarocki,Managing the Human Side of Projects,1,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV002,Scottsdale,1,3/16/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,1,,Yes
+EV002,Scottsdale,1,3/16/2026,1101D,Greta Blash,Hybrid Project Management: The Best of Both Worlds,1,1,,Yes
+EV002,Scottsdale,1,3/16/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV002,Scottsdale,1,3/16/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV002,Scottsdale,2,3/17/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,1,,Yes
+EV002,Scottsdale,2,3/17/2026,1091D,Greta Blash,Business Analysis Strategies: Enable Project Success,1,1,,Yes
+EV002,Scottsdale,2,3/17/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV002,Scottsdale,2,3/17/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0422D,Kandis Porter,How to Think Strategically and Apply Business Acumen,2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV002,Scottsdale,3,3/18/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,1,,Yes
+EV002,Scottsdale,3,3/18/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV002,Scottsdale,3,3/18/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV002,Scottsdale,3,3/18/2026,2022D,Bob Maiale,Construction Performance and Materials Management ,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0422D,Kandis Porter,How to Think Strategically and Apply Business Acumen,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV002,Scottsdale,4,3/19/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,1,,Yes
+EV002,Scottsdale,4,3/19/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV002,Scottsdale,4,3/19/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV002,Scottsdale,4,3/19/2026,2022D,Bob Maiale,Construction Performance and Materials Management ,2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,0612D,Vijay Verma,"Negotiate to Win: Build Partnerships, Secure Resources",2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,0621D,Jack Duggal,Lead Through Uncertainty: Next-Gen Communication Skills,1,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1344H,Carl Pritchard,Adaptive Project Management,0.6,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1641D,Annie Sheehan,Courageous Sponsorship,1,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1731D,Carlene Szostak,Leading Remote Teams,1,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1902D,Rafsan Huseynov,Microsoft 365 Copilot: AI for PM Productivity,2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV003,Virtual-Apr,1,4/20/2026,2063D,April Callis-Birchmeier,Leading Change that Sticks; Drive Adoption and Results,3,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,0432D,Joseph Reed,Influencing Without Authority,2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,0612D,Vijay Verma,"Negotiate to Win: Build Partnerships, Secure Resources",2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1101D,Greta Blash,Hybrid Project Management: The Best of Both Worlds,1,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1651D,Annie Sheehan,Empowering Leaders to Execute Strategically,1,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1741D,Carlene Szostak,AI Ethics for Project Managers,1,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1864H,Joseph Reed, Influencing Without Authority Interactive Briefing,0.6,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1902D,Rafsan Huseynov,Microsoft 365 Copilot: AI for PM Productivity,2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV003,Virtual-Apr,2,4/21/2026,2063D,April Callis-Birchmeier,Leading Change that Sticks; Drive Adoption and Results,3,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,0432D,Joseph Reed,Influencing Without Authority,2,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,0582D,Scott Burd,Measure What Matters: Track Benefits Realization,2,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,1132D,Jack Duggal,Become a Changemaker: Transform Organizations,2,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,1602D,Brad Malone,Project Management Foundations: Launch Your Success,2,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,1932D,Debra Howell,Rise Through Resilience,2,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,2063D,April Callis-Birchmeier,Leading Change that Sticks; Drive Adoption and Results,3,1,,Yes
+EV003,Virtual-Apr,3,4/22/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,0582D,Scott Burd,Measure What Matters: Track Benefits Realization,2,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,0951D,Drew Clark,Agile Leadership for Digital Transformation,1,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,1132D,Jack Duggal,Become a Changemaker: Transform Organizations,2,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,1602D,Brad Malone,Project Management Foundations: Launch Your Success,2,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,1932D,Debra Howell,Rise Through Resilience,2,1,,Yes
+EV003,Virtual-Apr,4,4/23/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV004,Chicago,1,5/11/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV004,Chicago,1,5/11/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV004,Chicago,1,5/11/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV004,Chicago,1,5/11/2026,0742D,April Callis-Birchmeier,Change Acceleration: Simplify and Succeed,2,1,,Yes
+EV004,Chicago,1,5/11/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV004,Chicago,1,5/11/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV004,Chicago,1,5/11/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV004,Chicago,1,5/11/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV004,Chicago,1,5/11/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,,Yes
+EV004,Chicago,2,5/12/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV004,Chicago,2,5/12/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV004,Chicago,2,5/12/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV004,Chicago,2,5/12/2026,0742D,April Callis-Birchmeier,Change Acceleration: Simplify and Succeed,2,1,,Yes
+EV004,Chicago,2,5/12/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV004,Chicago,2,5/12/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV004,Chicago,2,5/12/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV004,Chicago,2,5/12/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV004,Chicago,2,5/12/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,,Yes
+EV004,Chicago,3,5/13/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV004,Chicago,3,5/13/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV004,Chicago,3,5/13/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV004,Chicago,3,5/13/2026,0784H,Teresa Lawrence,"Solve the Problem, Not the Symptom",0.5,1,,Yes
+EV004,Chicago,3,5/13/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV004,Chicago,3,5/13/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV004,Chicago,3,5/13/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,,Yes
+EV004,Chicago,3,5/13/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV004,Chicago,4,5/14/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV004,Chicago,4,5/14/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV004,Chicago,4,5/14/2026,0541D,Thomas Jarocki,Managing the Human Side of Projects,1,1,,Yes
+EV004,Chicago,4,5/14/2026,1821D,Bob Maiale,Project Risk Mastery: Anticipate and Respond,1,1,,Yes
+EV004,Chicago,4,5/14/2026,1972D,Christine Aykac,Adaptive PMO: Mastering Agile Transformation,2,1,,Yes
+EV004,Chicago,4,5/14/2026,2092D,Erin Ramirez,Mastering Adaptability for Modern Project Success,2,1,,Yes
+EV005,Orlando,1,6/15/2026,0024D,"Joyce Brown, Thomas McCabe",A Non-Bootcamp Review of the PMBOK® Guide for Real-World Practitioners,4,1,,Yes
+EV005,Orlando,1,6/15/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV005,Orlando,1,6/15/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV005,Orlando,1,6/15/2026,0541D,Thomas Jarocki,Managing the Human Side of Projects,1,1,,Yes
+EV005,Orlando,1,6/15/2026,0552D,Brad Bigelow,Scope Management Secrets,2,1,,Yes
+EV005,Orlando,1,6/15/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV005,Orlando,1,6/15/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV005,Orlando,1,6/15/2026,1731D,Carlene Szostak,Leading Remote Teams,1,1,,Yes
+EV005,Orlando,1,6/15/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV005,Orlando,1,6/15/2026,1932D,Debra Howell,Rise Through Resilience,2,1,,Yes
+EV005,Orlando,1,6/15/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV005,Orlando,1,6/15/2026,2084D,Traci Duez,Leadership Discovery of your Value and Reputation,4,1,,Yes
+EV005,Orlando,1,6/15/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV005,Orlando,1,6/15/2026,1414H,Teresa Lawrence,Cognitive Diversity: Leverage Your Thinking Style,0.5,5,,Yes
+EV005,Orlando,1,6/15/2026,NEW1,Ori Schibi,AI Change Management,2,1,,Yes
+EV005,Orlando,2,6/16/2026,0024D,"Joyce Brown, Thomas McCabe",A Non-Bootcamp Review of the PMBOK® Guide for Real-World Practitioners,4,1,,Yes
+EV005,Orlando,2,6/16/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV005,Orlando,2,6/16/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV005,Orlando,2,6/16/2026,0552D,Brad Bigelow,Scope Management Secrets,2,1,,Yes
+EV005,Orlando,2,6/16/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV005,Orlando,2,6/16/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV005,Orlando,2,6/16/2026,0951D,Drew Clark,Agile Leadership for Digital Transformation,1,1,,Yes
+EV005,Orlando,2,6/16/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV005,Orlando,2,6/16/2026,1741D,Carlene Szostak,AI Ethics for Project Managers,1,1,,Yes
+EV005,Orlando,2,6/16/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV005,Orlando,2,6/16/2026,1932D,Debra Howell,Rise Through Resilience,2,1,,Yes
+EV005,Orlando,2,6/16/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV005,Orlando,2,6/16/2026,2084D,Traci Duez,Leadership Discovery of your Value and Reputation,4,1,,Yes
+EV005,Orlando,2,6/16/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV005,Orlando,2,6/16/2026,NEW1,Ori Schibi,AI Change Management,2,1,,Yes
+EV005,Orlando,3,6/17/2026,0024D,"Joyce Brown, Thomas McCabe",A Non-Bootcamp Review of the PMBOK® Guide for Real-World Practitioners,4,1,,Yes
+EV005,Orlando,3,6/17/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV005,Orlando,3,6/17/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV005,Orlando,3,6/17/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV005,Orlando,3,6/17/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV005,Orlando,3,6/17/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV005,Orlando,3,6/17/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV005,Orlando,3,6/17/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV005,Orlando,3,6/17/2026,1692D,Lisa DiTullio,"Project TLC:  Teamwork, Leadership, Communications",2,1,,Yes
+EV005,Orlando,3,6/17/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV005,Orlando,3,6/17/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV005,Orlando,3,6/17/2026,2084D,Traci Duez,Leadership Discovery of your Value and Reputation,4,1,,Yes
+EV005,Orlando,3,6/17/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV005,Orlando,3,6/17/2026,NEW2,Ori Schibi,Stakeholder Analysis for a Meaningful Engagement ,2,1,,Yes
+EV005,Orlando,4,6/18/2026,0024D,"Joyce Brown, Thomas McCabe",A Non-Bootcamp Review of the PMBOK® Guide for Real-World Practitioners,4,1,,Yes
+EV005,Orlando,4,6/18/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV005,Orlando,4,6/18/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV005,Orlando,4,6/18/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV005,Orlando,4,6/18/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV005,Orlando,4,6/18/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV005,Orlando,4,6/18/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV005,Orlando,4,6/18/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV005,Orlando,4,6/18/2026,1692D,Lisa DiTullio,"Project TLC:  Teamwork, Leadership, Communications",2,1,,Yes
+EV005,Orlando,4,6/18/2026,1821D,Bob Maiale,Project Risk Mastery: Anticipate and Respond,1,1,,Yes
+EV005,Orlando,4,6/18/2026,2084D,Traci Duez,Leadership Discovery of your Value and Reputation,4,1,,Yes
+EV005,Orlando,4,6/18/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV005,Orlando,4,6/18/2026,NEW2,Ori Schibi,Stakeholder Analysis for a Meaningful Engagement ,2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,0372D,NK Shrivastava,Hybrid Agility: Blend Traditional and Adaptive Methods,2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,0582D,Scott Burd,Measure What Matters: Track Benefits Realization,2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,1074H,Kathy Mendias,  Communication GPS: Keep Your Project on Track,0.5,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,1414H,Teresa Lawrence,Cognitive Diversity: Leverage Your Thinking Style,0.5,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV006,Virtual-Jul,1,7/20/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0372D,NK Shrivastava,Hybrid Agility: Blend Traditional and Adaptive Methods,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0582D,Scott Burd,Measure What Matters: Track Benefits Realization,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,0742D,April Callis-Birchmeier,Change Acceleration: Simplify and Succeed,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV006,Virtual-Jul,2,7/21/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,0102D,Mohamed Khalifa,Aligning the Organization Through Portfolio Management,2,1,YES - Instructor Unavailable,Yes
+EV006,Virtual-Jul,3,7/22/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,0742D,April Callis-Birchmeier,Change Acceleration: Simplify and Succeed,2,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,1042D,Teresa Lawrence,PM Tools & Techniques: Facilitate Creative Solutions,2,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,1211D,Klaus Nielsen,Master the Principles: Accelerate Project Success,1,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,1251D,Subash Racoojmar,Psychological Safety at Work,1,1,,Yes
+EV006,Virtual-Jul,3,7/22/2026,2033D,Chris Leonard,NEW! Leading AI-enabled Product Development,3,1,,Yes
+EV006,Virtual-Jul,4,7/23/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV006,Virtual-Jul,4,7/23/2026,0102D,Mohamed Khalifa,Aligning the Organization Through Portfolio Management,2,1,YES - Instructor Unavailable,Yes
+EV006,Virtual-Jul,4,7/23/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV007,San Diego,1,8/3/2026,0541D,Thomas Jarocki,Managing the Human Side of Projects,1,1,,Yes
+EV007,San Diego,1,8/3/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV007,San Diego,1,8/3/2026,1091D,Greta Blash,Business Analysis Strategies: Enable Project Success,1,1,,Yes
+EV007,San Diego,1,8/3/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV007,San Diego,1,8/3/2026,2002D,Bob Maiale,Construction Execution Planning ,2,1,,Yes
+EV007,San Diego,1,8/3/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,YES - Instructor Unavailable,Yes
+EV007,San Diego,1,8/3/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,,,Yes
+EV007,San Diego,2,8/4/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV007,San Diego,2,8/4/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV007,San Diego,2,8/4/2026,1101D,Greta Blash,Hybrid Project Management: The Best of Both Worlds,1,1,,Yes
+EV007,San Diego,2,8/4/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV007,San Diego,2,8/4/2026,2002D,Bob Maiale,Construction Execution Planning ,2,1,,Yes
+EV007,San Diego,2,8/4/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,YES - Instructor Unavailable,Yes
+EV007,San Diego,2,8/4/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,,,Yes
+EV007,San Diego,3,8/5/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV007,San Diego,3,8/5/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV007,San Diego,3,8/5/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV007,San Diego,3,8/5/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV007,San Diego,3,8/5/2026,1821D,Bob Maiale,Project Risk Mastery: Anticipate and Respond,1,1,,Yes
+EV007,San Diego,3,8/5/2026,2053D,"Joyce Brown, Thomas McCabe",Analyst’s Guide to Gathering Product and Project Requirements ,3,1,YES - Instructor Unavailable,Yes
+EV007,San Diego,3,8/5/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,,,Yes
+EV007,San Diego,4,8/6/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV007,San Diego,4,8/6/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV007,San Diego,4,8/6/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV007,San Diego,4,8/6/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV007,San Diego,4,8/6/2026,1831D,Bob Maiale,Lead Anywhere: Master Matrix and Remote Teams,1,1,,Yes
+EV007,San Diego,4,8/6/2026,0724D,Brad Malone,From PMBOK® to Practice: Building Your PM Competency Foundation,4,,,Yes
+EV008,Denver,1,9/14/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV008,Denver,1,9/14/2026,0372D,NK Shrivastava,Hybrid Agility: Blend Traditional and Adaptive Methods,2,1,,Yes
+EV008,Denver,1,9/14/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV008,Denver,1,9/14/2026,1243D,Robert Bogue,Change Management for Project Success,3,1,,Yes
+EV008,Denver,1,9/14/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV008,Denver,1,9/14/2026,1774D,"Michel Thiry, Guillaume Lapierre",The VMO Master Class,4,1,,Yes
+EV008,Denver,1,9/14/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV008,Denver,1,9/14/2026,1991D,Oscar Wasilik,AI Applications: Future-Proofing your PMO,1,1,,Yes
+EV008,Denver,1,9/14/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV008,Denver,2,9/15/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV008,Denver,2,9/15/2026,0372D,NK Shrivastava,Hybrid Agility: Blend Traditional and Adaptive Methods,2,1,,Yes
+EV008,Denver,2,9/15/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV008,Denver,2,9/15/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV008,Denver,2,9/15/2026,1203D,Oscar Wasilik,"Governance That Works: Psychology, Strategy and Tools",3,1,,Yes
+EV008,Denver,2,9/15/2026,1243D,Robert Bogue,Change Management for Project Success,3,1,,Yes
+EV008,Denver,2,9/15/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV008,Denver,2,9/15/2026,1774D,"Michel Thiry, Guillaume Lapierre",The VMO Master Class,4,1,,Yes
+EV008,Denver,2,9/15/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV008,Denver,2,9/15/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV008,Denver,3,9/16/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV008,Denver,3,9/16/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV008,Denver,3,9/16/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV008,Denver,3,9/16/2026,1203D,Oscar Wasilik,"Governance That Works: Psychology, Strategy and Tools",3,1,,Yes
+EV008,Denver,3,9/16/2026,1243D,Robert Bogue,Change Management for Project Success,3,1,,Yes
+EV008,Denver,3,9/16/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV008,Denver,3,9/16/2026,1774D,"Michel Thiry, Guillaume Lapierre",The VMO Master Class,4,1,,Yes
+EV008,Denver,3,9/16/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV008,Denver,3,9/16/2026,TBD2,Mike Griffiths,PMP Skills,1,1,,Yes
+EV008,Denver,4,9/17/2026,0082D,"Lisa Hammer, David Newman",Agile Fundamentals: Delivering Value,2,1,,Yes
+EV008,Denver,4,9/17/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV008,Denver,4,9/17/2026,0951D,Drew Clark,Agile Leadership for Digital Transformation,1,1,,Yes
+EV008,Denver,4,9/17/2026,1203D,Oscar Wasilik,"Governance That Works: Psychology, Strategy and Tools",3,1,,Yes
+EV008,Denver,4,9/17/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV008,Denver,4,9/17/2026,1774D,"Michel Thiry, Guillaume Lapierre",The VMO Master Class,4,1,,Yes
+EV008,Denver,4,9/17/2026,1821D,Bob Maiale,Project Risk Mastery: Anticipate and Respond,1,1,,Yes
+EV008,Denver,4,9/17/2026,TBD2,Mike Griffiths,PMP Skills,1,1,,Yes
+EV009,Detroit,1,10/19/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV009,Detroit,1,10/19/2026,1542D,Jack Duggal,"Power Skills: Lead, Influence, and Navigate",2,1,,Yes
+EV009,Detroit,1,10/19/2026,1962D,Tony Prensa,Implement a Strategic PMO: Drive Business Value,2,1,,Yes
+EV009,Detroit,1,10/19/2026,1991D,Oscar Wasilik,AI Applications: Future-Proofing your PMO,1,1,,Yes
+EV009,Detroit,1,10/19/2026,2012D,Bob Maiale,NEW! Construction Technology and Innovation,2,1,,Yes
+EV009,Detroit,2,10/20/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV009,Detroit,2,10/20/2026,1542D,Jack Duggal,"Power Skills: Lead, Influence, and Navigate",2,1,,Yes
+EV009,Detroit,2,10/20/2026,1962D,Tony Prensa,Implement a Strategic PMO: Drive Business Value,2,1,,Yes
+EV009,Detroit,2,10/20/2026,1991D,Oscar Wasilik,AI Applications: Future-Proofing your PMO,1,1,,Yes
+EV009,Detroit,2,10/20/2026,2012D,Bob Maiale,NEW! Construction Technology and Innovation,2,1,,Yes
+EV010,Washington,1,10/26/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV010,Washington,1,10/26/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV010,Washington,1,10/26/2026,1421D,Esra Tepeli,AI for Strategic Decisions: Leveraging Analysis,1,1,,Yes
+EV010,Washington,1,10/26/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV010,Washington,1,10/26/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV010,Washington,1,10/26/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV010,Washington,1,10/26/2026,1912D,Hammer and Newman,AI for People-First Project Management ,2,1,,Yes
+EV010,Washington,1,10/26/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV010,Washington,2,10/27/2026,0402D,Jeff Panning,How to Capture Customer Requirements and Develop Project Scope,2,1,,Yes
+EV010,Washington,2,10/27/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV010,Washington,2,10/27/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV010,Washington,2,10/27/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV010,Washington,2,10/27/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV010,Washington,2,10/27/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV010,Washington,2,10/27/2026,1912D,Hammer and Newman,AI for People-First Project Management ,2,1,,Yes
+EV010,Washington,2,10/27/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV010,Washington,3,10/28/2026,0282D,Hammer and Newman,Creative Problem-Solving: Think Beyond the Linear,2,1,,Yes
+EV010,Washington,3,10/28/2026,0422D,Kandis Porter,How to Think Strategically and Apply Business Acumen,2,1,,Yes
+EV010,Washington,3,10/28/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV010,Washington,3,10/28/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV010,Washington,3,10/28/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV010,Washington,3,10/28/2026,1681D,Peter Ivanov,Embracing AI in your Projects,1,1,,Yes
+EV010,Washington,3,10/28/2026,1902D,Rafsan Huseynov,Microsoft 365 Copilot: AI for PM Productivity,2,1,,Yes
+EV010,Washington,3,10/28/2026,New 2D,Tyson Rydl,Human Pattern Design Thinking,2,1,,Yes
+EV010,Washington,3,10/28/2026,TBD2,Mike Griffiths,PMP Skills,1,1,,Yes
+EV010,Washington,4,10/29/2026,0282D,Hammer and Newman,Creative Problem-Solving: Think Beyond the Linear,2,1,,Yes
+EV010,Washington,4,10/29/2026,0422D,Kandis Porter,How to Think Strategically and Apply Business Acumen,2,1,,Yes
+EV010,Washington,4,10/29/2026,0694D,Michel Thiry,Program Management Master Class,4,1,,Yes
+EV010,Washington,4,10/29/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV010,Washington,4,10/29/2026,1902D,Rafsan Huseynov,Microsoft 365 Copilot: AI for PM Productivity,2,1,,Yes
+EV010,Washington,4,10/29/2026,New 2D,Tyson Rydl,Human Pattern Design Thinking,2,1,,Yes
+EV010,Washington,4,10/29/2026,TBD2,Mike Griffiths,PMP Skills,1,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0282D,Hammer and Newman,Creative Problem-Solving: Think Beyond the Linear,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0432D,Joseph Reed,Influencing Without Authority,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1211D,Klaus Nielsen,Master the Principles: Accelerate Project Success,1,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1782D,Lisa DiTullio,Project TLC Cohort (need to resolve 5 week schedule),2,1,,Yes
+EV011,Virtual-Nov,1,11/16/2026,1864H,Joseph Reed, Influencing Without Authority Interactive Briefing,0.6,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0132D,Kristy Tan Neckowicz,"Build High-Performing Teams: Communicate, Motivate, Excel",2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0182D,Klaus Nielsen,Business Case—Best Practices for Success,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0282D,Hammer and Newman,Creative Problem-Solving: Think Beyond the Linear,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0432D,Joseph Reed,Influencing Without Authority,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,0482D,Greg Githens,Leading Strategic Initiatives (Program Management),2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1402D,Esra Tepeli,Enterprise Risk Management: Master Complex Projects,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1524H,Carl Pritchard,"The Engaged, Empowered, and Happy Stakeholder ",0.5,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1702D,Peter Ivanov,AI Agents for Project Excellence,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV011,Virtual-Nov,2,11/17/2026,1782D,Lisa DiTullio,Project TLC Cohort (need to resolve 5 week schedule),2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,0612D,Vijay Verma,"Negotiate to Win: Build Partnerships, Secure Resources",2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1394H,Carlene Szostak,Thrive in the AI Era: Future-Ready PM Skills,0.5,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1421D,Esra Tepeli,AI for Strategic Decisions: Leveraging Analysis,1,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1492D,Klaus Nielsen,Mastering Project Management Principles,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1712D,Carl Pritchard,Risk Management Essentials,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV011,Virtual-Nov,3,11/18/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,0032D,"Lisa Hammer, David Newman","Adapt, Adopt, and Accomplish for Project Management Success",2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,0612D,Vijay Verma,"Negotiate to Win: Build Partnerships, Secure Resources",2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1492D,Klaus Nielsen,Mastering Project Management Principles,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1552D,Oscar Wasilik,Artificial Intelligence Applied Skills: Unlocking Project Automation and Efficiency Gains,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1712D,Carl Pritchard,Risk Management Essentials,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,1802D,Klaus Boedker,Leading with AI for Project Managers,2,1,,Yes
+EV011,Virtual-Nov,4,11/19/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV012,Las Vegas,1,12/7/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV012,Las Vegas,1,12/7/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV012,Las Vegas,1,12/7/2026,0541D,Thomas Jarocki,Managing the Human Side of Projects,1,1,,Yes
+EV012,Las Vegas,1,12/7/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV012,Las Vegas,1,12/7/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV012,Las Vegas,1,12/7/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV012,Las Vegas,1,12/7/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV012,Las Vegas,1,12/7/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV012,Las Vegas,2,12/8/2026,0192D,Iain Fraser,Change Management: Navigate the Future,2,1,,Yes
+EV012,Las Vegas,2,12/8/2026,0342D,Traci Duez,"Developing Your EQ to RISE (Reach, Inspire, Serve, and Engage)",2,1,,Yes
+EV012,Las Vegas,2,12/8/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV012,Las Vegas,2,12/8/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV012,Las Vegas,2,12/8/2026,0951D,Drew Clark,Agile Leadership for Digital Transformation,1,1,,Yes
+EV012,Las Vegas,2,12/8/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV012,Las Vegas,2,12/8/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV012,Las Vegas,2,12/8/2026,1752D,Frank Saladis,Master Business Acumen Part 1: Become Business-Savvy,2,1,,Yes
+EV012,Las Vegas,2,12/8/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV012,Las Vegas,3,12/9/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV012,Las Vegas,3,12/9/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV012,Las Vegas,3,12/9/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV012,Las Vegas,3,12/9/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV012,Las Vegas,3,12/9/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV012,Las Vegas,3,12/9/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV012,Las Vegas,3,12/9/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV012,Las Vegas,3,12/9/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV012,Las Vegas,3,12/9/2026,1813D,Bob Maiale,Plan and Control: Project Management Foundations,3,1,,Yes
+EV012,Las Vegas,4,12/10/2026,0562D,Iain Fraser,"Value Management – Designed, Built, and Operationalized for Success",2,1,,Yes
+EV012,Las Vegas,4,12/10/2026,0643D,Thomas Jarocki,"Orchestrate Total Success: People, Projects, Change",3,1,,Yes
+EV012,Las Vegas,4,12/10/2026,0872D,Drew Clark,Drive Digital Transformation at Scale,2,1,,Yes
+EV012,Las Vegas,4,12/10/2026,0904D,Eric Foss,Evolve Your PMO,4,1,,Yes
+EV012,Las Vegas,4,12/10/2026,1022D,Traci Duez,Leadership Brilliance: Unlock Your Confidence and Courage,2,1,,Yes
+EV012,Las Vegas,4,12/10/2026,1464D,Jack Duggal,Next-Gen PMO: Build for Uncertainty,4,1,,Yes
+EV012,Las Vegas,4,12/10/2026,1724D,Sunny Faronbi,Lead with Emotional Intelligence,4,1,,Yes
+EV012,Las Vegas,4,12/10/2026,1762D,Frank Saladis,Master Business Acumen Part 2: Drive Business Value,2,1,,Yes
+EV012,Las Vegas,4,12/10/2026,1821D,Bob Maiale,Project Risk Mastery: Anticipate and Respond,1,1,,Yes
+EV013,Agile Alliance (Washington DC),1,7/28/2026,1882D,Joshua Barnes,Disciplined Agile Foundations: Approaches for Team Agility,2,1,,Yes
+EV013,Agile Alliance (Washington DC),1,7/28/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV013,Agile Alliance (Washington DC),1,7/28/2026,TBD1,Mike Griffiths,ACP Skills,1,1,,Yes
+EV013,Agile Alliance (Washington DC),2,7/29/2026,1882D,Joshua Barnes,Disciplined Agile Foundations: Approaches for Team Agility,2,1,,Yes
+EV013,Agile Alliance (Washington DC),2,7/29/2026,2072D,Scott Dunn,Developing High Performing Agile Teams,2,1,,Yes
+EV013,Agile Alliance (Washington DC),2,7/29/2026,TBD2,Mike Griffiths,PMP Skills,1,1,,Yes
+EV014,"Seoul, S. Korea/APAC Summit",1,6/8/2026,,,,,,No
+EV014,"Seoul, S. Korea/APAC Summit",2,6/9/2026,,,,,,No
+EV015,Dubai /MENA Summit,1,4/27/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV015,Dubai /MENA Summit,1,4/27/2026,2002D,Bob Maiale,Construction Execution Planning ,2,1,,Yes
+EV015,Dubai /MENA Summit,1,4/27/2026,2012D,Bob Maiale,NEW! Construction Technology and Innovation,2,1,,Yes
+EV015,Dubai /MENA Summit,1,4/27/2026,2022D,Bob Maiale,Construction Performance and Materials Management ,2,1,,Yes
+EV015,Dubai /MENA Summit,2,4/28/2026,1482D,Oscar Wasilik,"Artificial Intelligence-Powered Project Excellence: Roadmaps, Success Strategies, and Practical Tools",2,1,,Yes
+EV015,Dubai /MENA Summit,2,4/28/2026,2002D,Bob Maiale,Construction Execution Planning ,2,1,,Yes
+EV015,Dubai /MENA Summit,2,4/28/2026,2012D,Bob Maiale,NEW! Construction Technology and Innovation,2,1,,Yes
+EV015,Dubai /MENA Summit,2,4/28/2026,2022D,Bob Maiale,Construction Performance and Materials Management ,2,1,,Yes
+EV016,Cape Town/Africa,1,9/12/2026,,,,,,No
+EV016,Cape Town/Africa,2,9/13/2026,,,,,,No
+EV017,Test Event,1,1/2/2026,,,,,,No
+EV017,Test Event,2,1/3/2026,,,,,,No
+EV017,Test Event,3,1/4/2026,,,,,,No
+EV017,Test Event,4,1/5/2026,,,,,,No
