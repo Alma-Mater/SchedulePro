@@ -3894,21 +3894,70 @@ function renderSwimlanesGrid() {
                 ranges.push({ start: rangeStart, end: rangeEnd });
                 
                 // Create bars for each range
-                ranges.forEach(range => {
+                ranges.forEach((range, rangeIndex) => {
                     const daysInRange = range.end - range.start + 1;
                     const blockWidth = (100 / totalDays) * daysInRange;
                     const blockLeft = ((range.start - 1) / totalDays) * 100;
                     
+                    // Find courses that could fit in this gap
+                    const suitableCourses = courses.filter(course => {
+                        const courseId = course.Course_ID;
+                        const courseDuration = Math.ceil(parseFloat(course.Duration_Days));
+                        
+                        // Course must fit in the available days
+                        if (courseDuration > daysInRange) return false;
+                        
+                        // Check if course is already scheduled in this event (any room, any days)
+                        const placement = schedule[eventId]?.[courseId];
+                        if (placement && placement.days && placement.days.length > 0) {
+                            // Already scheduled in this event, not available
+                            return false;
+                        }
+                        
+                        // Check instructor availability during this range
+                        const blockedDays = getBlockedDays(course.Instructor, eventId);
+                        const rangeDays = [];
+                        for (let d = range.start; d <= range.end; d++) {
+                            rangeDays.push(d);
+                        }
+                        const hasConflict = rangeDays.some(day => blockedDays.includes(day));
+                        if (hasConflict) return false;
+                        
+                        return true;
+                    });
+                    
+                    // Create dropdown options
+                    let dropdownOptions = '<option value="">+ Add Draft Option...</option>';
+                    suitableCourses.forEach(course => {
+                        const courseDuration = Math.ceil(parseFloat(course.Duration_Days));
+                        dropdownOptions += `<option value="${course.Course_ID}">${course.Instructor} - ${course.Course_Name} (${courseDuration} ${courseDuration === 1 ? 'day' : 'days'})</option>`;
+                    });
+                    
+                    const uniqueId = `room-${roomNum}-range-${rangeIndex}-event-${eventId}`;
+                    
                     roomAvailabilityHTML += `
-                        <div style="display: flex; align-items: center; gap: 15px; padding: 8px 15px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px;">
-                            <div style="min-width: 200px; max-width: 200px; font-weight: 700; color: #28a745;">
-                                🟢 Room ${roomNum} Available
-                            </div>
-                            <div style="flex: 1; position: relative; min-height: 40px; background: white; border-radius: 8px; padding: 5px;">
-                                <div style="position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 30px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85em; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
-                                    Days ${range.start}${range.start !== range.end ? `-${range.end}` : ''}
+                        <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 2px solid #28a745;">
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                                <div style="min-width: 150px; font-weight: 700; color: #28a745;">
+                                    🟢 Room ${roomNum}
+                                </div>
+                                <div style="flex: 1; position: relative; min-height: 40px; background: white; border-radius: 8px; padding: 5px;">
+                                    <div style="position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 30px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85em; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
+                                        Days ${range.start}${range.start !== range.end ? `-${range.end}` : ''} (${daysInRange} ${daysInRange === 1 ? 'day' : 'days'} available)
+                                    </div>
                                 </div>
                             </div>
+                            ${suitableCourses.length > 0 ? `
+                                <div style="display: flex; gap: 10px; align-items: stretch;">
+                                    <select class="add-course-dropdown" id="draft-select-${uniqueId}" onchange="addToDraftList('${eventId}', ${roomNum}, ${range.start}, ${range.end}, '${uniqueId}', this.value); this.value='';" style="flex: 1;">
+                                        ${dropdownOptions}
+                                    </select>
+                                </div>
+                                <div id="draft-list-${uniqueId}" style="margin-top: 10px; display: none;">
+                                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">📋 Draft Selections:</div>
+                                    <div id="draft-items-${uniqueId}"></div>
+                                </div>
+                            ` : '<div style="color: #6c757d; font-size: 0.9em; padding: 8px; text-align: center; background: white; border-radius: 6px;">No courses fit in this time slot</div>'}
                         </div>
                     `;
                 });
@@ -4398,4 +4447,151 @@ function toggleEventSwimlaneGrid(eventId) {
     
     const isCollapsed = body.classList.toggle('collapsed');
     toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
+}
+
+// Track draft lists per availability slot
+const draftLists = {};
+
+// Add course to draft list
+function addToDraftList(eventId, roomNumber, startDay, endDay, uniqueId, courseId) {
+    if (!courseId) return;
+    
+    const course = courses.find(c => c.Course_ID === courseId);
+    if (!course) return;
+    
+    // Initialize draft list for this slot
+    if (!draftLists[uniqueId]) {
+        draftLists[uniqueId] = [];
+    }
+    
+    // Check if already in draft list
+    if (draftLists[uniqueId].some(item => item.courseId === courseId)) {
+        return; // Already added
+    }
+    
+    // Add to draft list
+    draftLists[uniqueId].push({
+        courseId,
+        courseName: course.Course_Name,
+        instructor: course.Instructor,
+        duration: Math.ceil(parseFloat(course.Duration_Days)),
+        eventId,
+        roomNumber,
+        startDay,
+        endDay
+    });
+    
+    // Update UI
+    updateDraftListUI(uniqueId);
+}
+
+// Update draft list UI
+function updateDraftListUI(uniqueId) {
+    const listContainer = document.getElementById(`draft-list-${uniqueId}`);
+    const itemsContainer = document.getElementById(`draft-items-${uniqueId}`);
+    
+    if (!listContainer || !itemsContainer) return;
+    
+    const items = draftLists[uniqueId] || [];
+    
+    if (items.length === 0) {
+        listContainer.style.display = 'none';
+        return;
+    }
+    
+    listContainer.style.display = 'block';
+    
+    itemsContainer.innerHTML = items.map((item, index) => `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 6px; margin-bottom: 5px; border: 2px solid #667eea;">
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: #667eea;">${item.instructor} - ${item.courseName}</div>
+                <div style="font-size: 0.85em; color: #6c757d;">${item.duration} ${item.duration === 1 ? 'day' : 'days'}</div>
+            </div>
+            <button class="btn btn-success btn-small" onclick="applyDraftCourse('${uniqueId}', ${index})" style="white-space: nowrap;">
+                ✓ Apply
+            </button>
+            <button class="btn btn-danger btn-small" onclick="removeDraftCourse('${uniqueId}', ${index})" style="white-space: nowrap;">
+                ✗ Remove
+            </button>
+        </div>
+    `).join('');
+}
+
+// Remove course from draft list
+function removeDraftCourse(uniqueId, index) {
+    if (!draftLists[uniqueId]) return;
+    
+    draftLists[uniqueId].splice(index, 1);
+    updateDraftListUI(uniqueId);
+}
+
+// Apply single draft course
+function applyDraftCourse(uniqueId, index) {
+    if (!draftLists[uniqueId] || !draftLists[uniqueId][index]) return;
+    
+    const item = draftLists[uniqueId][index];
+    const { courseId, eventId, roomNumber, startDay, endDay, duration } = item;
+    
+    const daysAvailable = endDay - startDay + 1;
+    
+    // Check if course still fits
+    if (duration > daysAvailable) {
+        alert('This course no longer fits in the available space.');
+        return;
+    }
+    
+    // Check if still unscheduled
+    const placement = schedule[eventId]?.[courseId];
+    if (placement && placement.days && placement.days.length > 0) {
+        alert('This course has already been scheduled.');
+        removeDraftCourse(uniqueId, index);
+        return;
+    }
+    
+    // Calculate days this course will occupy
+    const courseDays = [];
+    for (let i = 0; i < duration; i++) {
+        courseDays.push(startDay + i);
+    }
+    
+    // Check for instructor conflicts
+    const course = courses.find(c => c.Course_ID === courseId);
+    const blockedDays = getBlockedDays(course.Instructor, eventId);
+    const hasConflict = courseDays.some(day => blockedDays.includes(day));
+    
+    if (hasConflict) {
+        alert(`Cannot schedule this course. Instructor ${course.Instructor} is unavailable on some of these days.`);
+        return;
+    }
+    
+    // Apply the course
+    if (!schedule[eventId]) {
+        schedule[eventId] = {};
+    }
+    
+    // Add to assignments if not already assigned to this event
+    if (!assignments[courseId]) {
+        assignments[courseId] = [];
+    }
+    if (!assignments[courseId].includes(eventId)) {
+        assignments[courseId].push(eventId);
+    }
+    
+    schedule[eventId][courseId] = {
+        startDay: startDay,
+        days: courseDays,
+        roomNumber: roomNumber
+    };
+    
+    logChange('ADD', courseId, eventId, courseDays, null);
+    
+    // Remove from draft list
+    removeDraftCourse(uniqueId, index);
+    
+    // Re-render and save
+    renderSwimlanesGrid();
+    updateStats();
+    updateReportsGrid();
+    saveLogs();
+    autoSaveRound();
 }
