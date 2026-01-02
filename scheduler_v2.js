@@ -3846,8 +3846,22 @@ function renderSwimlanesGrid() {
             </div>
         `;
         
+        // Sort courses by room number (null/unassigned first, then 1, 2, 3, etc.)
+        const sortedCourses = assignedCourses.sort((a, b) => {
+            const roomA = schedule[eventId]?.[a.Course_ID]?.roomNumber;
+            const roomB = schedule[eventId]?.[b.Course_ID]?.roomNumber;
+            
+            // Null values (no room selected) go first
+            if (roomA === null && roomB === null) return 0;
+            if (roomA === null) return -1;
+            if (roomB === null) return 1;
+            
+            // Otherwise sort by room number ascending
+            return roomA - roomB;
+        });
+        
         // Build course swimlanes
-        let courseSwimlanesHTML = assignedCourses.map(course => 
+        let courseSwimlanesHTML = sortedCourses.map(course => 
             renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms)
         ).join('');
         
