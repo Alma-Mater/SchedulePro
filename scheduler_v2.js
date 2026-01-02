@@ -4147,8 +4147,14 @@ function renderSwimlanesGrid() {
         if (hasAnyAvailability) {
             roomAvailabilityHTML = `
                 <div style="margin: 15px 0; padding: 15px; background: #e7f3e7; border-radius: 8px; border: 2px solid #28a745;">
-                    <div style="font-weight: 700; color: #28a745; margin-bottom: 10px; font-size: 1.1em;">📊 Room Availability</div>
-                    ${roomAvailabilityHTML}
+                    <div style="font-weight: 700; color: #28a745; margin-bottom: 10px; font-size: 1.1em; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px;" 
+                         onclick="toggleRoomAvailability('${eventId}')">
+                        <span id="room-avail-icon-${eventId}">▶</span>
+                        <span>📊 Room Availability</span>
+                    </div>
+                    <div id="room-avail-content-${eventId}" style="display: none;">
+                        ${roomAvailabilityHTML}
+                    </div>
                 </div>
             `;
         }
@@ -4627,6 +4633,20 @@ function toggleEventSwimlaneGrid(eventId) {
     
     const isCollapsed = body.classList.toggle('collapsed');
     toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
+}
+
+// Toggle room availability section
+function toggleRoomAvailability(eventId) {
+    const content = document.getElementById(`room-avail-content-${eventId}`);
+    const icon = document.getElementById(`room-avail-icon-${eventId}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
 }
 
 // Track draft lists per availability slot
