@@ -4027,8 +4027,29 @@ function selectRoomGrid(eventId, courseId, roomNumber) {
             }
             
             if (roomConflicts.length > 0) {
-                alert(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nPlease choose a different room or change the days.`);
-                return;
+                const currentCourse = courses.find(c => c.Course_ID === courseId);
+                const proceed = confirm(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\n"${currentCourse?.Course_Name || courseId}" will be moved to Room ${roomNumber}, and the conflicting course(s) will have their room assignment cleared.\n\nClick OK to replace, or Cancel to keep current assignments.`);
+                
+                if (!proceed) {
+                    return;
+                }
+                
+                // Clear room assignments for conflicting courses
+                if (schedule[eventId]) {
+                    for (const otherCourseId in schedule[eventId]) {
+                        if (otherCourseId === courseId) continue;
+                        const otherPlacement = schedule[eventId][otherCourseId];
+                        if (otherPlacement.roomNumber === roomNumber) {
+                            const overlap = placement.days.some(day => otherPlacement.days.includes(day));
+                            if (overlap) {
+                                // Clear the room assignment but keep the day schedule
+                                schedule[eventId][otherCourseId].roomNumber = null;
+                                const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                                logChange('Room Selection', otherCourseId, eventId, 'None (cleared due to conflict)', `Room ${roomNumber}`);
+                            }
+                        }
+                    }
+                }
             }
         }
         
