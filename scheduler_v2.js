@@ -4214,22 +4214,24 @@ function renderSwimlanesGrid() {
             }
         }
         
-        // Remove occupied days from availability (include drafts as used)
-        let totalRoomDaysUsed = 0;
+        // Track unique room-day combinations to avoid double-counting when drafts overlap
+        const occupiedRoomDays = new Set();
         if (schedule[eventId]) {
             for (const courseId in schedule[eventId]) {
                 const placement = schedule[eventId][courseId];
                 if (placement.roomNumber && placement.days && placement.days.length > 0) {
-                    totalRoomDaysUsed += placement.days.length;
                     placement.days.forEach(day => {
+                        // Add unique room-day combination to set
+                        occupiedRoomDays.add(`${placement.roomNumber}-${day}`);
                         roomAvailability[placement.roomNumber]?.delete(day);
                     });
                 }
             }
         }
         
-        // Calculate booking status
+        // Calculate booking status using unique room-day count
         const totalRoomDaysAvailable = numRooms * totalDays;
+        const totalRoomDaysUsed = occupiedRoomDays.size;
         const unbookedRoomDays = totalRoomDaysAvailable - totalRoomDaysUsed;
         const bookingStatus = unbookedRoomDays === 0 
             ? 'Fully Booked'
