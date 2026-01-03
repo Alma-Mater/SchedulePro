@@ -472,6 +472,7 @@ function processConsolidatedDates(datesData) {
         const hotelLocation = typeof row.Hotel_Location === 'string' ? row.Hotel_Location.trim() : String(row.Hotel_Location || '').trim();
         const earlyBirdDate = typeof row.EarlyBird_End_Date === 'string' ? row.EarlyBird_End_Date.trim() : String(row.EarlyBird_End_Date || '').trim();
         const notes = typeof row.Notes === 'string' ? row.Notes.trim() : String(row.Notes || '').trim();
+        const location = typeof row.Location === 'string' ? row.Location.trim() : String(row.Location || '').trim();
         
         events.push({
             Event_ID: eventId,
@@ -479,7 +480,8 @@ function processConsolidatedDates(datesData) {
             Total_Days: totalDays,
             Hotel_Location: hotelLocation,
             EarlyBird_End_Date: earlyBirdDate,
-            Notes: notes
+            Notes: notes,
+            Location: location
         });
         
         let currentDate = new Date(startDate);
@@ -3235,6 +3237,7 @@ function exportTrainerContracts() {
     events.forEach(event => {
         const eventId = event.Event_ID;
         const eventName = event.Event;
+        const eventLocation = event.Location || eventName; // Use Location field if available, fallback to event name
         const isVirtual = isVirtualEvent(eventName);
         const days = eventDays.filter(d => d.Event_ID === eventId);
         
@@ -3242,8 +3245,9 @@ function exportTrainerContracts() {
             const courseId = course.Course_ID;
             const placement = schedule[eventId]?.[courseId];
             
-            // Only export courses that are scheduled (have room and days assigned)
-            if (!placement || !placement.roomNumber || !placement.days || placement.days.length === 0) {
+            // Only export courses that are scheduled (have days assigned)
+            // For virtual events, roomNumber might be 0 or null, so check days instead
+            if (!placement || !placement.days || placement.days.length === 0) {
                 return;
             }
             
@@ -3263,7 +3267,7 @@ function exportTrainerContracts() {
                 instructor: course.Instructor,
                 startDate: startDate,
                 endDate: endDate,
-                eventName: eventName,
+                eventLocation: eventLocation,
                 isVirtual: isVirtual,
                 courseTitle: course.Course_Name,
                 sortDate: new Date(startDate)
@@ -3303,7 +3307,7 @@ function exportTrainerContracts() {
         // Build data rows
         const rows = courses.map(course => {
             const monthName = getMonthName(course.startDate);
-            const location = course.eventName; // Using event name as location
+            const location = course.eventLocation; // Using Location field from event data
             const monthLocation = `${monthName} - ${location}`;
             
             return {
