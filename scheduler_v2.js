@@ -4397,7 +4397,7 @@ function renderSwimlanesGrid() {
         
         // Build course swimlanes
         let courseSwimlanesHTML = sortedCourses.map(course => 
-            renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms)
+            renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms, isVirtual)
         ).join('');
         
         swimlane.innerHTML = `
@@ -4443,7 +4443,7 @@ function renderSwimlanesGrid() {
 }
 
 // Render a single course swimlane for room grid view
-function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
+function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms, isVirtual = false) {
     const courseId = course.Course_ID;
     const duration = parseFloat(course.Duration_Days);
     const daysNeeded = Math.ceil(duration);
@@ -4481,21 +4481,24 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
         unavailWarning = `<div style="color: #dc3545; font-size: 0.85em; margin-top: 3px;">⚠️ Unavailable: Days ${blockedDays.join(', ')}</div>`;
     }
     
-    // Build room grid
-    let roomGridHTML = '<div class="room-grid"><span style="font-size: 0.9em; color: #667eea; font-weight: 600; margin-right: 8px;">🏠 Room:</span>';
-    for (let r = 1; r <= numRooms; r++) {
-        const isSelected = (assignedRoom !== null && r === assignedRoom) ? 'selected' : '';
-        roomGridHTML += `
-            <div class="room-grid-cell ${isSelected}" 
-                 data-room="${r}" 
-                 data-course-id="${courseId}"
-                 data-event-id="${eventId}"
-                 onclick="selectRoomGrid('${eventId}', '${courseId}', ${r})">
-                ${r}
-            </div>
-        `;
+    // Build room grid (skip for virtual events)
+    let roomGridHTML = '';
+    if (!isVirtual) {
+        roomGridHTML = '<div class="room-grid"><span style="font-size: 0.9em; color: #667eea; font-weight: 600; margin-right: 8px;">🏠 Room:</span>';
+        for (let r = 1; r <= numRooms; r++) {
+            const isSelected = (assignedRoom !== null && r === assignedRoom) ? 'selected' : '';
+            roomGridHTML += `
+                <div class="room-grid-cell ${isSelected}" 
+                     data-room="${r}" 
+                     data-course-id="${courseId}"
+                     data-event-id="${eventId}"
+                     onclick="selectRoomGrid('${eventId}', '${courseId}', ${r})">
+                    ${r}
+                </div>
+            `;
+        }
+        roomGridHTML += '</div>';
     }
-    roomGridHTML += '</div>';
     
     return `
         <div class="course-swimlane" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}">
