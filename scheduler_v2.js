@@ -4406,15 +4406,12 @@ function renderSwimlanesGrid() {
                     <span style="min-width: 200px;">${eventName}</span>
                     <span style="min-width: 80px;">${totalDays} days</span>
                     <span style="min-width: 120px;">${dateRangeStr}</span>
-                    ${isVirtual 
-                        ? `<span style="min-width: 100px; color: #667eea; font-weight: 700;">Virtual Event</span>`
-                        : `<span style="min-width: 100px;">Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
-                            <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
-                                  style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
-                                  title="Click to edit room count">✎</span>
-                          </span>
-                          <span style="min-width: 150px;">${bookingStatus}</span>`
-                    }
+                    <span style="min-width: 100px;">${isVirtual ? 'V Rooms' : 'Rooms'}: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
+                        <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
+                              style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
+                              title="Click to edit room count">✎</span>
+                    </span>
+                    ${!isVirtual ? `<span style="min-width: 150px;">${bookingStatus}</span>` : ''}
                     ${eventDraftCount > 0 ? `<span style="color: #ff9800; font-weight: 700; min-width: 80px;">Drafts: ${eventDraftCount}</span>` : ''}
                     <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
                           style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
