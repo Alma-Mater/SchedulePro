@@ -3200,6 +3200,153 @@ function exportConflicts() {
     alert(`Exported ${conflicts.length} conflict(s) to CSV`);
 }
 
+// Export Trainer Contracts - Excel with one tab per trainer
+function exportTrainerContracts() {
+    // Helper: Extract last names from instructor field
+    function getLastNames(instructorField) {
+        // Split by comma for multiple instructors: "Lisa Harding, Thomas Jeffrey"
+        const instructors = instructorField.split(',').map(i => i.trim());
+        const lastNames = instructors.map(fullName => {
+            const parts = fullName.trim().split(' ');
+            return parts[parts.length - 1]; // Get last word as last name
+        });
+        return lastNames.join(' and ');
+    }
+    
+    // Helper: Format date as "Mar 17 2026"
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()} ${date.getFullYear()}`;
+    }
+    
+    // Helper: Get month name
+    function getMonthName(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[date.getMonth()];
+    }
+    
+    // Collect all scheduled courses with their details
+    const scheduledCourses = [];
+    
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const isVirtual = isVirtualEvent(eventName);
+        const days = eventDays.filter(d => d.Event_ID === eventId);
+        
+        courses.forEach(course => {
+            const courseId = course.Course_ID;
+            const placement = schedule[eventId]?.[courseId];
+            
+            // Only export courses that are scheduled (have room and days assigned)
+            if (!placement || !placement.roomNumber || !placement.days || placement.days.length === 0) {
+                return;
+            }
+            
+            // Get start and end dates
+            const startDayNum = Math.min(...placement.days);
+            const endDayNum = Math.max(...placement.days);
+            
+            const startDayObj = days.find(d => parseInt(d.Day_Number) === startDayNum);
+            const endDayObj = days.find(d => parseInt(d.Day_Number) === endDayNum);
+            
+            if (!startDayObj || !endDayObj) return;
+            
+            const startDate = startDayObj.Day_Date;
+            const endDate = endDayObj.Day_Date;
+            
+            scheduledCourses.push({
+                instructor: course.Instructor,
+                startDate: startDate,
+                endDate: endDate,
+                eventName: eventName,
+                isVirtual: isVirtual,
+                courseTitle: course.Course_Name,
+                sortDate: new Date(startDate)
+            });
+        });
+    });
+    
+    if (scheduledCourses.length === 0) {
+        alert('No scheduled courses found. Please assign courses to rooms and days before exporting.');
+        return;
+    }
+    
+    // Group by instructor
+    const byInstructor = {};
+    scheduledCourses.forEach(sc => {
+        // Split instructors if multiple (comma-separated)
+        const instructors = sc.instructor.split(',').map(i => i.trim());
+        
+        instructors.forEach(instructor => {
+            if (!byInstructor[instructor]) {
+                byInstructor[instructor] = [];
+            }
+            byInstructor[instructor].push(sc);
+        });
+    });
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Create a sheet for each instructor
+    Object.keys(byInstructor).sort().forEach(instructor => {
+        const courses = byInstructor[instructor];
+        
+        // Sort chronologically
+        courses.sort((a, b) => a.sortDate - b.sortDate);
+        
+        // Build data rows
+        const rows = courses.map(course => {
+            const monthName = getMonthName(course.startDate);
+            const location = course.eventName; // Using event name as location
+            const monthLocation = `${monthName} - ${location}`;
+            
+            return {
+                'Start Date': formatDate(course.startDate),
+                'End Date': formatDate(course.endDate),
+                'Month/Location': monthLocation,
+                'Modality': course.isVirtual ? 'Virtual' : 'In Person',
+                'Training Title': course.courseTitle,
+                'Trainer(s)': getLastNames(course.instructor)
+            };
+        });
+        
+        // Create worksheet
+        const ws = XLSX.utils.json_to_sheet(rows);
+        
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 15 }, // Start Date
+            { wch: 15 }, // End Date
+            { wch: 30 }, // Month/Location
+            { wch: 12 }, // Modality
+            { wch: 40 }, // Training Title
+            { wch: 20 }  // Trainer(s)
+        ];
+        
+        // Use first name + last initial as sheet name (Excel limit: 31 chars)
+        const parts = instructor.trim().split(' ');
+        let sheetName = instructor;
+        if (parts.length >= 2) {
+            sheetName = `${parts[0]} ${parts[parts.length - 1].charAt(0)}`;
+        }
+        sheetName = sheetName.substring(0, 31); // Excel sheet name limit
+        
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+    
+    // Generate and download
+    const timestamp = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Trainer_Contracts_${timestamp}.xlsx`);
+    
+    alert(`Exported contracts for ${Object.keys(byInstructor).length} trainer(s) to Excel`);
+}
+
 // Helper function to download a file
 function downloadFile(content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });
