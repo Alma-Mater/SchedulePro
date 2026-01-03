@@ -4292,7 +4292,7 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
     }
     
     // Build room grid
-    let roomGridHTML = '<div class="room-grid">';
+    let roomGridHTML = '<div class="room-grid"><span style="font-size: 0.9em; color: #667eea; font-weight: 600; margin-right: 8px;">🏠 Room:</span>';
     for (let r = 1; r <= numRooms; r++) {
         const isSelected = (assignedRoom !== null && r === assignedRoom) ? 'selected' : '';
         roomGridHTML += `
@@ -4313,21 +4313,20 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
                 <div class="course-info-name">${course.Course_Name}</div>
                 <div class="course-info-instructor">${course.Instructor}</div>
                 <div class="course-info-duration">📏 ${course.Duration_Days} days</div>
-                <div style="margin-top: 8px;">
-                    <span style="font-size: 0.9em; color: #667eea; font-weight: 600;">🏠 Room:</span>
-                    ${roomGridHTML}
-                </div>
                 ${unavailWarning}
             </div>
-            <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
-                <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
-                     data-course-id="${courseId}"
-                     data-event-id="${eventId}"
-                     data-days-needed="${daysNeeded}"
-                     draggable="true"
-                     style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 40px; line-height: 40px;` : ''}">
-                    ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}` : 'Drag to timeline'}
+            <div class="timeline-container">
+                <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
+                    <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
+                         data-course-id="${courseId}"
+                         data-event-id="${eventId}"
+                         data-days-needed="${daysNeeded}"
+                         draggable="true"
+                         style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 40px; line-height: 40px;` : ''}">
+                        ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}` : 'Drag to timeline'}
+                    </div>
                 </div>
+                ${roomGridHTML}
             </div>
             <div class="course-actions">
                 <button class="btn btn-danger btn-small" onclick="removeCourseFromEventGrid('${courseId}', '${eventId}')">

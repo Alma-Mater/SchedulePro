@@ -580,7 +580,8 @@
 
         .course-swimlane {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
             gap: 15px;
             padding: 15px;
             background: #f8f9fa;
@@ -755,16 +756,26 @@
         }
 
         /* Room Grid Styles */
+        .timeline-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        
         .room-grid {
             display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 8px;
+            flex-wrap: nowrap;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            align-items: center;
         }
 
         .room-grid-cell {
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -773,9 +784,11 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.9em;
             color: #667eea;
             transition: all 0.2s;
             user-select: none;
+            flex-shrink: 0;
         }
 
         .room-grid-cell:hover {
