@@ -654,6 +654,15 @@
             display: inline-block;
             margin: 5px;
         }
+        
+        .course-block.draft {
+            background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%) !important;
+            font-weight: 700;
+        }
+        
+        .course-block.draft:hover {
+            background: linear-gradient(135deg, #fb8c00 0%, #ef6c00 100%) !important;
+        }
 
         .course-block.has-conflict {
             background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
@@ -924,6 +933,10 @@
                     <div class="stat">
                         <div class="stat-value" id="avgCoursesPerDay">0</div>
                         <div class="stat-label">Avg Courses/Day</div>
+                    </div>
+                    <div class="stat" style="background: #fff3cd;">
+                        <div class="stat-value" id="draftCount" style="color: #ff9800;">0</div>
+                        <div class="stat-label">Draft Courses</div>
                     </div>
                 </div>
 

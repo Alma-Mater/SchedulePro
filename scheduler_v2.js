@@ -7,10 +7,62 @@ let eventRooms = {}; // { eventId: numberOfRooms } - Number of rooms available p
 let instructorUnavailable = []; // Raw unavailability data from CSV
 let unavailabilityMap = {}; // Pre-calculated: { 'Instructor-EventID': [blockedDayNumbers] }
 let assignments = {}; // { courseId: [eventIds] }
-let schedule = {}; // { eventId: { courseId: { startDay, days: [], roomNumber: 1 } } }
+let schedule = {}; // { eventId: { courseId: { startDay, days: [], roomNumber: 1, isDraft: false } } }
 let rooms = {}; // DEPRECATED - now using roomNumber in schedule
 let draggedBlock = null;
 let currentTimeline = null;
+
+// Three-button dialog helper
+function showThreeButtonDialog(message, button1Text, button2Text, button3Text) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+    
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 500px; width: 90%;';
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = 'white-space: pre-line; margin-bottom: 25px; line-height: 1.6; color: #333;';
+    messageDiv.textContent = message;
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
+    
+    let result = 'cancel';
+    
+    const btn1 = document.createElement('button');
+    btn1.textContent = button1Text;
+    btn1.className = 'btn btn-primary';
+    btn1.onclick = () => { result = 'replace'; overlay.remove(); };
+    
+    const btn2 = document.createElement('button');
+    btn2.textContent = button2Text;
+    btn2.className = 'btn btn-secondary';
+    btn2.onclick = () => { result = 'cancel'; overlay.remove(); };
+    
+    const btn3 = document.createElement('button');
+    btn3.textContent = button3Text;
+    btn3.className = 'btn btn-warning';
+    btn3.onclick = () => { result = 'draft'; overlay.remove(); };
+    
+    buttonContainer.appendChild(btn1);
+    buttonContainer.appendChild(btn2);
+    buttonContainer.appendChild(btn3);
+    
+    dialog.appendChild(messageDiv);
+    dialog.appendChild(buttonContainer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Wait for user interaction
+    return new Promise(resolve => {
+        const checkRemoved = setInterval(() => {
+            if (!document.body.contains(overlay)) {
+                clearInterval(checkRemoved);
+                resolve(result);
+            }
+        }, 100);
+    });
+}
 
 // Change logging
 let changeLog = [];
@@ -1142,6 +1194,16 @@ function updateStats() {
         return;
     }
     
+    // Count draft courses
+    let draftCount = 0;
+    for (const eventId in schedule) {
+        for (const courseId in schedule[eventId]) {
+            if (schedule[eventId][courseId].isDraft) {
+                draftCount++;
+            }
+        }
+    }
+    
     // 1. Percent of courses assigned to events - COUNT ONLY courses in the courses array
     let assignedCount = 0;
     courses.forEach(course => {
@@ -1255,6 +1317,9 @@ function updateStats() {
     // 4. Average courses per day (across all event days)
     const avgPerDay = totalEventDays > 0 ? (totalAssignments / totalEventDays).toFixed(2) : 0;
     document.getElementById('avgCoursesPerDay').textContent = avgPerDay;
+    
+    // 5. Draft count
+    document.getElementById('draftCount').textContent = draftCount;
 }
 
 // Go to configure days view
@@ -1707,7 +1772,8 @@ function addCourseToEvent(eventId, courseId, selectElement) {
         schedule[eventId][courseId] = {
             startDay: null,
             days: [],
-            roomNumber: 1  // Default to Room 1
+            roomNumber: 1,  // Default to Room 1
+            isDraft: false
         };
     }
     
@@ -2798,7 +2864,8 @@ function importSchedule(scheduleData, fileName) {
         schedule[match.eventId][courseId] = {
             startDay: match.startDayNumber,
             days: match.dayNumbers,
-            roomNumber: roomNumber
+            roomNumber: roomNumber,
+            isDraft: false
         };
         
         successCount++;
@@ -3596,10 +3663,12 @@ function updateFinances() {
     events.forEach(event => {
         const eventId = event.Event_ID;
         
-        // Find all courses assigned to this event
-        const eventCourses = courses.filter(course => 
-            assignments[course.Course_ID]?.includes(eventId)
-        );
+        // Find all courses assigned to this event (exclude drafts)
+        const eventCourses = courses.filter(course => {
+            const isAssigned = assignments[course.Course_ID]?.includes(eventId);
+            const isDraft = schedule[eventId]?.[course.Course_ID]?.isDraft;
+            return isAssigned && !isDraft;
+        });
         
         // Calculate total revenue per scenario
         const scenarioRevenues = scenarios.map((scenario, idx) => {
@@ -3929,10 +3998,12 @@ function updateFinancesGrid() {
     events.forEach(event => {
         const eventId = event.Event_ID;
         
-        // Find all courses assigned to this event
-        const eventCourses = courses.filter(course => 
-            assignments[course.Course_ID]?.includes(eventId)
-        );
+        // Find all courses assigned to this event (exclude drafts)
+        const eventCourses = courses.filter(course => {
+            const isAssigned = assignments[course.Course_ID]?.includes(eventId);
+            const isDraft = schedule[eventId]?.[course.Course_ID]?.isDraft;
+            return isAssigned && !isDraft;
+        });
         
         // Calculate total revenue per scenario
         const scenarioRevenues = scenarios.map((scenario, idx) => {
@@ -4338,6 +4409,7 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
     const placement = schedule[eventId]?.[courseId];
     const startDay = placement?.startDay;
     const assignedRoom = placement?.roomNumber || null;
+    const isDraft = placement?.isDraft || false;
     
     // Calculate block width as percentage
     const blockWidth = (100 / totalDays) * daysNeeded;
@@ -4352,6 +4424,10 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
         }
         hasConflict = courseDays.some(day => blockedDays.includes(day));
     }
+    
+    // Add draft class and label
+    const draftClass = isDraft ? 'draft' : '';
+    const draftLabel = isDraft ? ' DRAFT' : '';
     
     // Generate unavailability warning if any
     let unavailWarning = '';
@@ -4385,13 +4461,13 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
             </div>
             <div class="timeline-container">
                 <div class="course-timeline" data-course-id="${courseId}" data-event-id="${eventId}" data-room-number="${assignedRoom}" data-total-days="${totalDays}" data-instructor="${course.Instructor}" data-blocked-days="${blockedDays.join(',')}">
-                    <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''}" 
+                    <div class="course-block ${startDay ? '' : 'unplaced'} ${hasConflict ? 'has-conflict' : ''} ${draftClass}" 
                          data-course-id="${courseId}"
                          data-event-id="${eventId}"
                          data-days-needed="${daysNeeded}"
                          draggable="true"
                          style="${startDay ? `position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 40px; line-height: 40px;` : ''}">
-                        ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}` : 'Drag to timeline'}
+                        ${startDay ? `Days ${startDay}-${startDay + daysNeeded - 1}${draftLabel}` : 'Drag to timeline'}
                     </div>
                 </div>
                 ${roomGridHTML}
@@ -4400,13 +4476,16 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
                 <button class="btn btn-danger btn-small" onclick="removeCourseFromEventGrid('${courseId}', '${eventId}')">
                     ✗ Remove
                 </button>
+                <button class="btn btn-secondary btn-small" style="background: #e0e0e0; color: #666;" onclick="toggleDraftStatus('${eventId}', '${courseId}')">
+                    ${isDraft ? '✓ Finalize' : '📝 Draft'}
+                </button>
             </div>
         </div>
     `;
 }
 
 // Room selection handler for grid view
-function selectRoomGrid(eventId, courseId, roomNumber) {
+async function selectRoomGrid(eventId, courseId, roomNumber) {
     if (!schedule[eventId]) {
         schedule[eventId] = {};
     }
@@ -4451,12 +4530,45 @@ function selectRoomGrid(eventId, courseId, roomNumber) {
             
             if (roomConflicts.length > 0) {
                 const currentCourse = courses.find(c => c.Course_ID === courseId);
-                const proceed = confirm(`⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\n"${currentCourse?.Course_Name || courseId}" will be moved to Room ${roomNumber}, and the conflicting course(s) will have their room assignment cleared.\n\nClick OK to replace, or Cancel to keep current assignments.`);
+                const conflictMessage = `⚠️ Room ${roomNumber} Conflict!\n\nThis room is already occupied on some of these days by:\n${roomConflicts.join('\n')}\n\nWhat would you like to do?`;
                 
-                if (!proceed) {
+                // Create custom dialog with 3 buttons
+                const result = await showThreeButtonDialog(
+                    conflictMessage,
+                    'Replace (clear conflicting rooms)',
+                    'Cancel (keep current)',
+                    'Draft Both (mark as drafts)'
+                );
+                
+                if (result === 'cancel') {
                     return;
                 }
                 
+                if (result === 'draft') {
+                    // Mark all conflicting courses as draft
+                    if (schedule[eventId]) {
+                        for (const otherCourseId in schedule[eventId]) {
+                            const otherPlacement = schedule[eventId][otherCourseId];
+                            if (otherPlacement.roomNumber === roomNumber) {
+                                const overlap = placement.days.some(day => otherPlacement.days.includes(day));
+                                if (overlap || otherCourseId === courseId) {
+                                    schedule[eventId][otherCourseId].isDraft = true;
+                                    logChange('Draft Status', otherCourseId, eventId, 'Marked as Draft', null, 'Room conflict');
+                                }
+                            }
+                        }
+                    }
+                    // Assign room and mark as draft
+                    schedule[eventId][courseId].roomNumber = roomNumber;
+                    schedule[eventId][courseId].isDraft = true;
+                    logChange('Room Selection', courseId, eventId, `Room ${roomNumber} (Draft)`, null);
+                    renderSwimlanesGrid();
+                    saveLogs();
+                    autoSaveRound();
+                    return;
+                }
+                
+                // result === 'replace'
                 // Clear room assignments for conflicting courses
                 if (schedule[eventId]) {
                     for (const otherCourseId in schedule[eventId]) {
@@ -4487,6 +4599,52 @@ function selectRoomGrid(eventId, courseId, roomNumber) {
     renderSwimlanesGrid();
     saveLogs();
     autoSaveRound();
+}
+
+// Toggle draft status for a course
+function toggleDraftStatus(eventId, courseId) {
+    if (!schedule[eventId] || !schedule[eventId][courseId]) return;
+    
+    const placement = schedule[eventId][courseId];
+    placement.isDraft = !placement.isDraft;
+    
+    const course = courses.find(c => c.Course_ID === courseId);
+    const status = placement.isDraft ? 'Draft' : 'Finalized';
+    logChange('Draft Status', courseId, eventId, status, null);
+    
+    // Check if draft was cleared and auto-clear others if conflict resolved
+    if (!placement.isDraft && placement.roomNumber && placement.startDay) {
+        checkAndClearResolvedConflicts(eventId, courseId);
+    }
+    
+    renderSwimlanesGrid();
+    saveLogs();
+    autoSaveRound();
+}
+
+// Auto-clear draft status when conflicts are resolved
+function checkAndClearResolvedConflicts(eventId, courseId) {
+    const placement = schedule[eventId][courseId];
+    if (!placement) return;
+    
+    const roomNumber = placement.roomNumber;
+    if (!roomNumber) return;
+    
+    // Find other courses in same room
+    const conflictingCourses = [];
+    for (const otherCourseId in schedule[eventId]) {
+        if (otherCourseId === courseId) continue;
+        const otherPlacement = schedule[eventId][otherCourseId];
+        if (otherPlacement.roomNumber === roomNumber && otherPlacement.isDraft) {
+            // Check for day overlap
+            const overlap = placement.days.some(day => otherPlacement.days.includes(day));
+            if (!overlap) {
+                // No overlap means conflict is resolved, clear draft
+                schedule[eventId][otherCourseId].isDraft = false;
+                logChange('Draft Status', otherCourseId, eventId, 'Auto-finalized (conflict resolved)', null);
+            }
+        }
+    }
 }
 
 // Setup drag and drop for room grid view
@@ -4698,7 +4856,8 @@ function addCourseToEventGrid(eventId, courseId, selectElement) {
         schedule[eventId][courseId] = {
             startDay: null,
             days: [],
-            roomNumber: null
+            roomNumber: null,
+            isDraft: false
         };
     }
     
@@ -4889,7 +5048,8 @@ function applyDraftCourse(uniqueId, index) {
     schedule[eventId][courseId] = {
         startDay: startDay,
         days: courseDays,
-        roomNumber: roomNumber
+        roomNumber: roomNumber,
+        isDraft: false
     };
     
     logChange('ADD', courseId, eventId, courseDays, null);
