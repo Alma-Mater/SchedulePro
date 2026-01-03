@@ -4417,7 +4417,7 @@ function renderSwimlanesGrid() {
         swimlane.innerHTML = `
             <div class="event-swimlane-header" onclick="toggleEventSwimlaneGrid('${eventId}')" style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 15px; align-items: center; flex: 1;">
-                    <span style="min-width: 200px;">${eventName}</span>
+                    <span style="min-width: 320px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${eventName}">${eventName}</span>
                     <span style="min-width: 80px;">${totalDays} days</span>
                     <span style="min-width: 120px;">${dateRangeStr}</span>
                     <span style="min-width: 100px;">${isVirtual ? 'V Rooms' : 'Rooms'}: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
