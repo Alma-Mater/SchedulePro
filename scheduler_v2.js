@@ -351,11 +351,26 @@ async function loadEvents() {
 function processConsolidatedDates(datesData) {
     events = [];
     eventDays = [];
+    eventRooms = {}; // Reset room counts
     
     datesData.forEach(row => {
         // Handle both CSV strings and Excel data (which may have Date objects, numbers, etc)
         const eventId = typeof row.Event_ID === 'string' ? row.Event_ID.trim() : String(row.Event_ID || '').trim();
         const eventName = typeof row.Event === 'string' ? row.Event.trim() : String(row.Event || '').trim();
+        
+        // Extract Room_Count if provided (optional, defaults to 1)
+        let roomCount = 1; // Default
+        if (row.Room_Count !== undefined && row.Room_Count !== null && row.Room_Count !== '') {
+            const parsed = parseInt(row.Room_Count);
+            if (!isNaN(parsed) && parsed > 0) {
+                roomCount = parsed;
+            }
+        }
+        
+        // Set room count for this event (first occurrence wins)
+        if (!eventRooms[eventId]) {
+            eventRooms[eventId] = roomCount;
+        }
         
         // Handle dates - Excel returns Date objects, CSV returns strings
         let firstDay = row.First_Event_Day;
@@ -2540,6 +2555,23 @@ function setupEventDaysFileInput() {
         
         eventDays = newEventDays;
         
+        // Extract room counts from event days data if Room_Count column exists
+        const roomCountsByEvent = {};
+        newEventDays.forEach(row => {
+            const eventId = row.Event_ID;
+            if (row.Room_Count !== undefined && row.Room_Count !== null && row.Room_Count !== '') {
+                const parsed = parseInt(row.Room_Count);
+                if (!isNaN(parsed) && parsed > 0 && !roomCountsByEvent[eventId]) {
+                    roomCountsByEvent[eventId] = parsed;
+                }
+            }
+        });
+        
+        // Update eventRooms with discovered room counts
+        Object.entries(roomCountsByEvent).forEach(([eventId, count]) => {
+            eventRooms[eventId] = count;
+        });
+        
         // Recalculate unavailability if it was already loaded
         if (instructorUnavailable.length > 0) {
             calculateUnavailabilityMap();
@@ -2601,6 +2633,28 @@ function importSchedule(scheduleData, fileName) {
     // Track unique courses to ensure they exist in courses list
     const courseIds = new Set(courses.map(c => c.Course_ID));
     
+    // Warn if room assignments will be lost due to missing room configuration
+    const roomConfigWarnings = new Set();
+    scheduleData.forEach(row => {
+        if (row.Event_ID && row.Room_Number) {
+            const eventId = row.Event_ID.trim();
+            const roomNum = parseInt(row.Room_Number);
+            const currentRoomCount = eventRooms[eventId] || 1;
+            if (!isNaN(roomNum) && roomNum > currentRoomCount) {
+                roomConfigWarnings.add(`Event "${eventId}" has Room ${roomNum} in CSV but only ${currentRoomCount} room(s) configured`);
+            }
+        }
+    });
+    
+    if (roomConfigWarnings.size > 0) {
+        const warningMessage = 'Room configuration mismatch detected:\n\n' + 
+            Array.from(roomConfigWarnings).join('\n') + 
+            '\n\nPlease configure room counts for each event before importing room assignments.\n\nContinue anyway?';
+        if (!confirm(warningMessage)) {
+            return;
+        }
+    }
+    
     scheduleData.forEach((row, index) => {
         const courseId = row.Course_ID.trim();
         const durationDays = parseFloat(row.Duration_Days);
@@ -2656,9 +2710,11 @@ function importSchedule(scheduleData, fileName) {
         
         if (hasEventId) {
             const eventId = row.Event_ID.trim();
+            console.log('Processing with Event_ID:', eventId, 'for course:', courseId);
             const event = events.find(e => e.Event_ID === eventId);
             
             if (!event) {
+                console.error('Event not found:', eventId);
                 errors.push({
                     Row: index + 2,
                     Course_ID: courseId,
@@ -2670,7 +2726,9 @@ function importSchedule(scheduleData, fileName) {
             }
             
             // Find day numbers for this event that match the dates
-            match = findEventDaysForDates(eventId, event.Event, startDate, endDate);
+            console.log('Finding event days for:', eventId, startDate, endDate);
+            match = findEventDaysForDates(eventId, startDate, endDate);
+            console.log('Match result:', match);
             
             if (!match) {
                 errors.push({
@@ -2842,14 +2900,21 @@ function findEventForDateRange(startDate, endDate) {
 
 // Find day numbers for a specific event given date range
 function findEventDaysForDates(eventId, startDate, endDate) {
+    console.log('findEventDaysForDates called with:', { eventId, startDate, endDate });
     const event = events.find(e => e.Event_ID === eventId);
-    if (!event) return null;
+    if (!event) {
+        console.error('Event not found in events array:', eventId);
+        return null;
+    }
     
     const eventName = event.Event;
+    console.log('Found event:', eventName);
     
     // Get all days for this event
     const days = eventDays.filter(d => d.Event_ID === eventId)
                          .sort((a, b) => a.Day_Number - b.Day_Number);
+    
+    console.log('Event days found:', days.length, days);
     
     if (days.length === 0) return null;
     
