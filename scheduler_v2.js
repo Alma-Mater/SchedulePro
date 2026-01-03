@@ -4100,6 +4100,11 @@ function updateTopicsPerEventGrid() {
 }
 
 // Render swimlanes for room grid view
+// Check if event is virtual (by name)
+function isVirtualEvent(eventName) {
+    return eventName.toLowerCase().includes('virtual');
+}
+
 function renderSwimlanesGrid() {
     const container = document.getElementById('swimlanesContainerGrid');
     
@@ -4116,6 +4121,7 @@ function renderSwimlanesGrid() {
         const eventId = event.Event_ID;
         const eventName = event.Event;
         const totalDays = parseInt(event['Total_Days']);
+        const isVirtual = isVirtualEvent(eventName);
         
         // Get courses assigned to this event
         const assignedCourses = courses.filter(course => 
@@ -4204,48 +4210,53 @@ function renderSwimlanesGrid() {
             </div>
         `;
         
-        // Calculate room availability for each room
+        // Calculate room availability for each room (skip for virtual events)
         const roomAvailability = {};
-        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
-            roomAvailability[roomNum] = new Set();
-            // Initially all days are available
-            for (let day = 1; day <= totalDays; day++) {
-                roomAvailability[roomNum].add(day);
-            }
-        }
+        let bookingStatus = '';
         
-        // Track unique room-day combinations to avoid double-counting when drafts overlap
-        const occupiedRoomDays = new Set();
-        if (schedule[eventId]) {
-            for (const courseId in schedule[eventId]) {
-                const placement = schedule[eventId][courseId];
-                if (placement.roomNumber && placement.days && placement.days.length > 0) {
-                    placement.days.forEach(day => {
-                        // Add unique room-day combination to set
-                        occupiedRoomDays.add(`${placement.roomNumber}-${day}`);
-                        roomAvailability[placement.roomNumber]?.delete(day);
-                    });
+        if (!isVirtual) {
+            for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+                roomAvailability[roomNum] = new Set();
+                // Initially all days are available
+                for (let day = 1; day <= totalDays; day++) {
+                    roomAvailability[roomNum].add(day);
                 }
             }
+            
+            // Track unique room-day combinations to avoid double-counting when drafts overlap
+            const occupiedRoomDays = new Set();
+            if (schedule[eventId]) {
+                for (const courseId in schedule[eventId]) {
+                    const placement = schedule[eventId][courseId];
+                    if (placement.roomNumber && placement.days && placement.days.length > 0) {
+                        placement.days.forEach(day => {
+                            // Add unique room-day combination to set
+                            occupiedRoomDays.add(`${placement.roomNumber}-${day}`);
+                            roomAvailability[placement.roomNumber]?.delete(day);
+                        });
+                    }
+                }
+            }
+            
+            // Calculate booking status using unique room-day count
+            const totalRoomDaysAvailable = numRooms * totalDays;
+            const totalRoomDaysUsed = occupiedRoomDays.size;
+            const unbookedRoomDays = totalRoomDaysAvailable - totalRoomDaysUsed;
+            bookingStatus = unbookedRoomDays === 0 
+                ? 'Fully Booked'
+                : `Unbooked: ${unbookedRoomDays} room-days`;
         }
-        
-        // Calculate booking status using unique room-day count
-        const totalRoomDaysAvailable = numRooms * totalDays;
-        const totalRoomDaysUsed = occupiedRoomDays.size;
-        const unbookedRoomDays = totalRoomDaysAvailable - totalRoomDaysUsed;
-        const bookingStatus = unbookedRoomDays === 0 
-            ? 'Fully Booked'
-            : `Unbooked: ${unbookedRoomDays} room-days`;
         
         // Lock status (isLocked already declared above)
         const lockIcon = isLocked ? '🔒' : '🔓';
         const lockTitle = isLocked ? 'Click to unlock event' : 'Click to lock event';
         
-        // Build room availability bars
+        // Build room availability bars (skip for virtual events)
         let roomAvailabilityHTML = '';
         let hasAnyAvailability = false;
         
-        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+        if (!isVirtual) {
+            for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
             const availableDays = Array.from(roomAvailability[roomNum]).sort((a, b) => a - b);
             if (availableDays.length > 0) {
                 hasAnyAvailability = true;
@@ -4350,7 +4361,8 @@ function renderSwimlanesGrid() {
                     </div>
                 </div>
             `;
-        }
+            }
+        } // End if (!isVirtual) for room availability
         
         // Sort courses: blank/unassigned rooms at top, then by room number (1, 2, 3, etc.)
         const sortedCourses = [...assignedCourses].sort((a, b) => {
@@ -4394,12 +4406,15 @@ function renderSwimlanesGrid() {
                     <span style="min-width: 200px;">${eventName}</span>
                     <span style="min-width: 80px;">${totalDays} days</span>
                     <span style="min-width: 120px;">${dateRangeStr}</span>
-                    <span style="min-width: 100px;">Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
-                        <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
-                              style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
-                              title="Click to edit room count">✎</span>
-                    </span>
-                    <span style="min-width: 150px;">${bookingStatus}</span>
+                    ${isVirtual 
+                        ? `<span style="min-width: 100px; color: #667eea; font-weight: 700;">Virtual Event</span>`
+                        : `<span style="min-width: 100px;">Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
+                            <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
+                                  style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
+                                  title="Click to edit room count">✎</span>
+                          </span>
+                          <span style="min-width: 150px;">${bookingStatus}</span>`
+                    }
                     ${eventDraftCount > 0 ? `<span style="color: #ff9800; font-weight: 700; min-width: 80px;">Drafts: ${eventDraftCount}</span>` : ''}
                     <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
                           style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
