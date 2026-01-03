@@ -2602,11 +2602,14 @@ function setupScheduleFileInput() {
             return;
         }
         
-        const requiredColumns = ['Course_ID', 'Duration_Days', 'First_Day', 'Last_Day'];
-        const hasAllColumns = requiredColumns.every(col => col in scheduleData[0]);
+        // Check for required columns - be flexible with Duration column name
+        const firstRow = scheduleData[0];
+        const hasBasicColumns = 'Course_ID' in firstRow && 'First_Day' in firstRow && 'Last_Day' in firstRow;
+        const hasDuration = 'Duration_Days' in firstRow || 'Duration' in firstRow;
         
-        if (!hasAllColumns) {
-            alert('CSV must have columns: Course_ID, Duration_Days, First_Day, Last_Day (optional: Event_ID, Room_Number)');
+        if (!hasBasicColumns || !hasDuration) {
+            const foundColumns = Object.keys(firstRow).join(', ');
+            alert(`CSV must have columns: Course_ID, Duration_Days (or Duration), First_Day, Last_Day (optional: Event_ID, Room_Number)\n\nFound columns: ${foundColumns}`);
             return;
         }
         
