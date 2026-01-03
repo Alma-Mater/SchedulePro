@@ -4117,6 +4117,21 @@ function renderSwimlanesGrid() {
     
     container.innerHTML = '';
     
+    // Build consolidated "All Open Bookings" section at the top
+    const allOpenBookingsSection = document.createElement('div');
+    allOpenBookingsSection.style.cssText = 'margin-bottom: 30px; background: white; border: 2px solid #dee2e6; border-radius: 10px; overflow: hidden;';
+    allOpenBookingsSection.innerHTML = `
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 20px; font-size: 1.3em; font-weight: 700; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;" onclick="toggleAllOpenBookings()">
+            <span>📊 All Open Bookings</span>
+            <span id="toggle-all-bookings">▶ Expand</span>
+        </div>
+        <div id="all-open-bookings-content" style="padding: 20px; display: none; max-height: 600px; overflow-y: auto;"></div>
+    `;
+    container.appendChild(allOpenBookingsSection);
+    
+    // Populate the All Open Bookings content
+    buildAllOpenBookingsContent();
+    
     // Sort events by first day's date (earliest first)
     const sortedEvents = [...events].sort((a, b) => {
         const daysA = eventDays.filter(d => d.Event_ID === a.Event_ID);
@@ -4993,8 +5008,178 @@ function toggleEventSwimlaneGrid(eventId) {
     const body = document.getElementById(`body-grid-${eventId}`);
     const toggle = document.getElementById(`toggle-grid-${eventId}`);
     
-    const isCollapsed = body.classList.toggle('collapsed');
-    toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
+    if (body.classList.contains('collapsed')) {
+        body.classList.remove('collapsed');
+        toggle.textContent = '▼ Collapse';
+    } else {
+        body.classList.add('collapsed');
+        toggle.textContent = '▶ Expand';
+    }
+}
+
+// Toggle All Open Bookings section
+function toggleAllOpenBookings() {
+    const content = document.getElementById('all-open-bookings-content');
+    const toggle = document.getElementById('toggle-all-bookings');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '▼ Collapse';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶ Expand';
+    }
+}
+
+// Build content for All Open Bookings section
+function buildAllOpenBookingsContent() {
+    const contentDiv = document.getElementById('all-open-bookings-content');
+    if (!contentDiv) return;
+    
+    let allBookingsHTML = '';
+    
+    // Loop through all non-virtual events
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        const totalDays = parseInt(event['Total_Days']);
+        const isVirtual = isVirtualEvent(eventName);
+        
+        // Skip virtual events
+        if (isVirtual) return;
+        
+        const numRooms = eventRooms[eventId] || 1;
+        const days = eventDays.filter(d => d.Event_ID === eventId);
+        
+        // Calculate room availability
+        const roomAvailability = {};
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            roomAvailability[roomNum] = new Set();
+            for (let day = 1; day <= totalDays; day++) {
+                roomAvailability[roomNum].add(day);
+            }
+        }
+        
+        // Remove occupied days
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                if (placement.roomNumber && placement.days && placement.days.length > 0) {
+                    placement.days.forEach(day => {
+                        roomAvailability[placement.roomNumber]?.delete(day);
+                    });
+                }
+            }
+        }
+        
+        // Check if there's any availability
+        let hasAvailability = false;
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            if (roomAvailability[roomNum].size > 0) {
+                hasAvailability = true;
+                break;
+            }
+        }
+        
+        if (!hasAvailability) return;
+        
+        // Build availability HTML for this event
+        let eventAvailabilityHTML = `<div style="margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px solid #28a745;"><div style="font-weight: 700; color: #667eea; font-size: 1.1em; margin-bottom: 15px;">${eventName}</div>`;
+        
+        for (let roomNum = 1; roomNum <= numRooms; roomNum++) {
+            const availableDays = Array.from(roomAvailability[roomNum]).sort((a, b) => a - b);
+            if (availableDays.length === 0) continue;
+            
+            // Group consecutive days into ranges
+            const ranges = [];
+            let rangeStart = availableDays[0];
+            let rangeEnd = availableDays[0];
+            
+            for (let i = 1; i < availableDays.length; i++) {
+                if (availableDays[i] === rangeEnd + 1) {
+                    rangeEnd = availableDays[i];
+                } else {
+                    ranges.push({ start: rangeStart, end: rangeEnd });
+                    rangeStart = availableDays[i];
+                    rangeEnd = availableDays[i];
+                }
+            }
+            ranges.push({ start: rangeStart, end: rangeEnd });
+            
+            // Create bars for each range
+            ranges.forEach((range, rangeIndex) => {
+                const daysInRange = range.end - range.start + 1;
+                const blockWidth = (100 / totalDays) * daysInRange;
+                const blockLeft = ((range.start - 1) / totalDays) * 100;
+                
+                // Find suitable courses
+                const suitableCourses = courses.filter(course => {
+                    const courseId = course.Course_ID;
+                    const courseDuration = Math.ceil(parseFloat(course.Duration_Days));
+                    
+                    if (courseDuration > daysInRange) return false;
+                    
+                    const placement = schedule[eventId]?.[courseId];
+                    if (placement && placement.days && placement.days.length > 0) {
+                        return false;
+                    }
+                    
+                    const blockedDays = getBlockedDays(course.Instructor, eventId);
+                    const rangeDays = [];
+                    for (let d = range.start; d <= range.end; d++) {
+                        rangeDays.push(d);
+                    }
+                    const hasConflict = rangeDays.some(day => blockedDays.includes(day));
+                    if (hasConflict) return false;
+                    
+                    return true;
+                });
+                
+                let dropdownOptions = '<option value="">+ Add Draft Option...</option>';
+                suitableCourses.forEach(course => {
+                    const courseDuration = Math.ceil(parseFloat(course.Duration_Days));
+                    dropdownOptions += `<option value="${course.Course_ID}">${course.Instructor} - ${course.Course_Name} (${courseDuration} ${courseDuration === 1 ? 'day' : 'days'})</option>`;
+                });
+                
+                const uniqueId = `all-room-${roomNum}-range-${rangeIndex}-event-${eventId}`;
+                
+                eventAvailabilityHTML += `
+                    <div style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 2px solid #28a745;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                            <div style="min-width: 150px; font-weight: 700; color: #28a745;">
+                                🟢 Room ${roomNum}
+                            </div>
+                            <div style="flex: 1; position: relative; min-height: 40px; background: #f8f9fa; border-radius: 8px; padding: 5px;">
+                                <div style="position: absolute; left: ${blockLeft}%; width: ${blockWidth}%; top: 5px; height: 30px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85em; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
+                                    Days ${range.start}${range.start !== range.end ? `-${range.end}` : ''} (${daysInRange} ${daysInRange === 1 ? 'day' : 'days'} available)
+                                </div>
+                            </div>
+                        </div>
+                        ${suitableCourses.length > 0 ? `
+                            <div style="display: flex; gap: 10px; align-items: stretch;">
+                                <select class="add-course-dropdown" id="draft-select-${uniqueId}" onchange="addToDraftList('${eventId}', ${roomNum}, ${range.start}, ${range.end}, '${uniqueId}', this.value); this.value='';" style="flex: 1;">
+                                    ${dropdownOptions}
+                                </select>
+                            </div>
+                            <div id="draft-list-${uniqueId}" style="margin-top: 10px; display: none;">
+                                <div style="font-weight: 600; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">📋 Draft Selections:</div>
+                                <div id="draft-items-${uniqueId}"></div>
+                            </div>
+                        ` : '<div style="color: #6c757d; font-size: 0.9em; padding: 8px; text-align: center; background: #f8f9fa; border-radius: 6px;">No courses fit in this time slot</div>'}
+                    </div>
+                `;
+            });
+        }
+        
+        eventAvailabilityHTML += '</div>';
+        allBookingsHTML += eventAvailabilityHTML;
+    });
+    
+    if (allBookingsHTML === '') {
+        contentDiv.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 30px; font-size: 1.1em;">🎉 No open bookings - all events are fully scheduled!</div>';
+    } else {
+        contentDiv.innerHTML = allBookingsHTML;
+    }
 }
 
 // Toggle event lock status
