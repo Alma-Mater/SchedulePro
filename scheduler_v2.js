@@ -4389,15 +4389,23 @@ function renderSwimlanesGrid() {
         ).join('');
         
         swimlane.innerHTML = `
-            <div class="event-swimlane-header" onclick="toggleEventSwimlaneGrid('${eventId}')">
-                <span>${eventName} ${totalDays} days • ${dateRangeStr} • Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
-                    <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
-                          style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
-                          title="Click to edit room count">✎</span> • ${bookingStatus}${draftIndicator} • 
+            <div class="event-swimlane-header" onclick="toggleEventSwimlaneGrid('${eventId}')" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 15px; align-items: center; flex: 1;">
+                    <span style="min-width: 200px;">${eventName}</span>
+                    <span style="min-width: 80px;">${totalDays} days</span>
+                    <span style="min-width: 120px;">${dateRangeStr}</span>
+                    <span style="min-width: 100px;">Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
+                        <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
+                              style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
+                              title="Click to edit room count">✎</span>
+                    </span>
+                    <span style="min-width: 150px;">${bookingStatus}</span>
+                    ${eventDraftCount > 0 ? `<span style="color: #ff9800; font-weight: 700; min-width: 80px;">Drafts: ${eventDraftCount}</span>` : ''}
                     <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
                           style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
-                          title="${lockTitle}">${lockIcon}</span>${conflictIndicator}
-                </span>
+                          title="${lockTitle}">${lockIcon}</span>
+                    ${conflictIndicator}
+                </div>
                 <span id="toggle-grid-${eventId}">${toggleText}</span>
             </div>
             <div class="${bodyClass}" id="body-grid-${eventId}">
