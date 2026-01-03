@@ -1197,16 +1197,6 @@ function updateStats() {
         return;
     }
     
-    // Count draft courses
-    let draftCount = 0;
-    for (const eventId in schedule) {
-        for (const courseId in schedule[eventId]) {
-            if (schedule[eventId][courseId].isDraft) {
-                draftCount++;
-            }
-        }
-    }
-    
     // 1. Percent of courses assigned to events - COUNT ONLY courses in the courses array
     let assignedCount = 0;
     courses.forEach(course => {
@@ -1320,9 +1310,6 @@ function updateStats() {
     // 4. Average courses per day (across all event days)
     const avgPerDay = totalEventDays > 0 ? (totalAssignments / totalEventDays).toFixed(2) : 0;
     document.getElementById('avgCoursesPerDay').textContent = avgPerDay;
-    
-    // 5. Draft count
-    document.getElementById('draftCount').textContent = draftCount;
 }
 
 // Go to configure days view
@@ -4227,12 +4214,12 @@ function renderSwimlanesGrid() {
             }
         }
         
-        // Remove occupied days from availability (excluding drafts)
+        // Remove occupied days from availability (include drafts as used)
         let totalRoomDaysUsed = 0;
         if (schedule[eventId]) {
             for (const courseId in schedule[eventId]) {
                 const placement = schedule[eventId][courseId];
-                if (placement.roomNumber && placement.days && placement.days.length > 0 && !placement.isDraft) {
+                if (placement.roomNumber && placement.days && placement.days.length > 0) {
                     totalRoomDaysUsed += placement.days.length;
                     placement.days.forEach(day => {
                         roomAvailability[placement.roomNumber]?.delete(day);
@@ -4383,6 +4370,17 @@ function renderSwimlanesGrid() {
             return roomA - roomB;
         });
         
+        // Count drafts for this event
+        let eventDraftCount = 0;
+        if (schedule[eventId]) {
+            for (const courseId in schedule[eventId]) {
+                if (schedule[eventId][courseId].isDraft) {
+                    eventDraftCount++;
+                }
+            }
+        }
+        const draftIndicator = eventDraftCount > 0 ? ` • <span style="color: #ff9800; font-weight: 700;">Drafts: ${eventDraftCount}</span>` : '';
+        
         // Build course swimlanes
         let courseSwimlanesHTML = sortedCourses.map(course => 
             renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms)
@@ -4393,7 +4391,7 @@ function renderSwimlanesGrid() {
                 <span>${eventName} ${totalDays} days • ${dateRangeStr} • Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
                     <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
                           style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
-                          title="Click to edit room count">✎</span> • ${bookingStatus} • 
+                          title="Click to edit room count">✎</span> • ${bookingStatus}${draftIndicator} • 
                     <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
                           style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
                           title="${lockTitle}">${lockIcon}</span>${conflictIndicator}
