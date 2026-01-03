@@ -4,6 +4,7 @@ let courses = [];
 let events = [];
 let eventDays = [];
 let eventRooms = {}; // { eventId: numberOfRooms } - Number of rooms available per event
+let lockedEvents = new Set(); // Set of eventIds that are locked from editing
 let instructorUnavailable = []; // Raw unavailability data from CSV
 let unavailabilityMap = {}; // Pre-calculated: { 'Instructor-EventID': [blockedDayNumbers] }
 let assignments = {}; // { courseId: [eventIds] }
@@ -245,6 +246,7 @@ function autoSaveRound() {
         events,
         eventDays,
         eventRooms,
+        lockedEvents: Array.from(lockedEvents),
         instructorUnavailable,
         unavailabilityMap,
         assignments,
@@ -265,6 +267,7 @@ function loadRoundData() {
             events = data.events || [];
             eventDays = data.eventDays || [];
             eventRooms = data.eventRooms || {};
+            lockedEvents = new Set(data.lockedEvents || []);
             instructorUnavailable = data.instructorUnavailable || [];
             unavailabilityMap = data.unavailabilityMap || {};
             assignments = data.assignments || {};
@@ -2132,6 +2135,12 @@ function removeCourseFromEvent(courseId, eventId) {
 
 // Edit room count for an event
 function editRoomCount(eventId, currentCount) {
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
+    
     const newCount = prompt(`Set number of rooms for this event:\n(Current: ${currentCount})`, currentCount);
     if (newCount === null) return; // Cancelled
     
@@ -4162,7 +4171,8 @@ function renderSwimlanesGrid() {
         
         // Create swimlane
         const swimlane = document.createElement('div');
-        swimlane.className = 'event-swimlane';
+        const isLocked = lockedEvents.has(eventId);
+        swimlane.className = isLocked ? 'event-swimlane locked' : 'event-swimlane';
         swimlane.dataset.eventId = eventId;
         
         // Get date range from first and last event days
@@ -4217,17 +4227,30 @@ function renderSwimlanesGrid() {
             }
         }
         
-        // Remove occupied days from availability
+        // Remove occupied days from availability (excluding drafts)
+        let totalRoomDaysUsed = 0;
         if (schedule[eventId]) {
             for (const courseId in schedule[eventId]) {
                 const placement = schedule[eventId][courseId];
-                if (placement.roomNumber && placement.days && placement.days.length > 0) {
+                if (placement.roomNumber && placement.days && placement.days.length > 0 && !placement.isDraft) {
+                    totalRoomDaysUsed += placement.days.length;
                     placement.days.forEach(day => {
                         roomAvailability[placement.roomNumber]?.delete(day);
                     });
                 }
             }
         }
+        
+        // Calculate booking status
+        const totalRoomDaysAvailable = numRooms * totalDays;
+        const unbookedRoomDays = totalRoomDaysAvailable - totalRoomDaysUsed;
+        const bookingStatus = unbookedRoomDays === 0 
+            ? 'Fully Booked'
+            : `Unbooked: ${unbookedRoomDays} room-days`;
+        
+        // Lock status (isLocked already declared above)
+        const lockIcon = isLocked ? '🔒' : '🔓';
+        const lockTitle = isLocked ? 'Click to unlock event' : 'Click to lock event';
         
         // Build room availability bars
         let roomAvailabilityHTML = '';
@@ -4370,7 +4393,10 @@ function renderSwimlanesGrid() {
                 <span>${eventName} ${totalDays} days • ${dateRangeStr} • Rooms: <span style="color: #ff9800; font-weight: 700;">${numRooms}</span>
                     <span onclick="event.stopPropagation(); editRoomCount('${eventId}', ${numRooms})" 
                           style="cursor: pointer; opacity: 0.8; padding: 0 3px;" 
-                          title="Click to edit room count">✎</span>${conflictIndicator}
+                          title="Click to edit room count">✎</span> • ${bookingStatus} • 
+                    <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
+                          style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
+                          title="${lockTitle}">${lockIcon}</span>${conflictIndicator}
                 </span>
                 <span id="toggle-grid-${eventId}">${toggleText}</span>
             </div>
@@ -4486,6 +4512,12 @@ function renderCourseSwimlaneGrid(course, eventId, totalDays, numRooms) {
 
 // Room selection handler for grid view
 async function selectRoomGrid(eventId, courseId, roomNumber) {
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
+    
     if (!schedule[eventId]) {
         schedule[eventId] = {};
     }
@@ -4604,6 +4636,12 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
 // Toggle draft status for a course
 function toggleDraftStatus(eventId, courseId) {
     if (!schedule[eventId] || !schedule[eventId][courseId]) return;
+    
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
     
     const placement = schedule[eventId][courseId];
     placement.isDraft = !placement.isDraft;
@@ -4724,6 +4762,12 @@ function handleTimelineDropGrid(e) {
     const timeline = e.currentTarget;
     const timelineCourseId = timeline.dataset.courseId;
     const timelineEventId = timeline.dataset.eventId;
+    
+    // Check if event is locked
+    if (lockedEvents.has(timelineEventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
     
     if (timelineCourseId !== draggedBlock.courseId || timelineEventId !== draggedBlock.eventId) {
         return;
@@ -4847,6 +4891,13 @@ function populateCourseDropdownGrid(eventId, assignedCourses) {
 function addCourseToEventGrid(eventId, courseId, selectElement) {
     if (!courseId) return;
     
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        selectElement.value = '';
+        return;
+    }
+    
     handleAssignmentChange(courseId, eventId, true);
     
     if (!schedule[eventId]) {
@@ -4870,6 +4921,12 @@ function addCourseToEventGrid(eventId, courseId, selectElement) {
 
 // Remove course from event in grid view
 function removeCourseFromEventGrid(courseId, eventId) {
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
+    
     const oldDays = schedule[eventId]?.[courseId]?.days || null;
     
     if (assignments[courseId]) {
@@ -4903,6 +4960,18 @@ function toggleEventSwimlaneGrid(eventId) {
     toggle.textContent = isCollapsed ? '▶ Expand' : '▼ Collapse';
 }
 
+// Toggle event lock status
+function toggleEventLock(eventId) {
+    if (lockedEvents.has(eventId)) {
+        lockedEvents.delete(eventId);
+    } else {
+        lockedEvents.add(eventId);
+    }
+    
+    autoSaveRound();
+    renderSwimlanesGrid();
+}
+
 // Toggle room availability section
 function toggleRoomAvailability(eventId) {
     const content = document.getElementById(`room-avail-content-${eventId}`);
@@ -4923,6 +4992,12 @@ const draftLists = {};
 // Add course to draft list
 function addToDraftList(eventId, roomNumber, startDay, endDay, uniqueId, courseId) {
     if (!courseId) return;
+    
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
     
     const course = courses.find(c => c.Course_ID === courseId);
     if (!course) return;
@@ -4989,6 +5064,13 @@ function updateDraftListUI(uniqueId) {
 function removeDraftCourse(uniqueId, index) {
     if (!draftLists[uniqueId]) return;
     
+    // Check if event is locked (get eventId from the draft item)
+    const item = draftLists[uniqueId][index];
+    if (item && lockedEvents.has(item.eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
+    
     draftLists[uniqueId].splice(index, 1);
     updateDraftListUI(uniqueId);
 }
@@ -4999,6 +5081,12 @@ function applyDraftCourse(uniqueId, index) {
     
     const item = draftLists[uniqueId][index];
     const { courseId, eventId, roomNumber, startDay, endDay, duration } = item;
+    
+    // Check if event is locked
+    if (lockedEvents.has(eventId)) {
+        alert('🔒 This event is locked. Unlock it to make changes.');
+        return;
+    }
     
     const daysAvailable = endDay - startDay + 1;
     
