@@ -4117,7 +4117,21 @@ function renderSwimlanesGrid() {
     
     container.innerHTML = '';
     
-    events.forEach(event => {
+    // Sort events by first day's date (earliest first)
+    const sortedEvents = [...events].sort((a, b) => {
+        const daysA = eventDays.filter(d => d.Event_ID === a.Event_ID);
+        const daysB = eventDays.filter(d => d.Event_ID === b.Event_ID);
+        
+        if (daysA.length === 0) return 1;
+        if (daysB.length === 0) return -1;
+        
+        const dateA = new Date(daysA[0].Day_Date);
+        const dateB = new Date(daysB[0].Day_Date);
+        
+        return dateA - dateB;
+    });
+    
+    sortedEvents.forEach(event => {
         const eventId = event.Event_ID;
         const eventName = event.Event;
         const totalDays = parseInt(event['Total_Days']);
