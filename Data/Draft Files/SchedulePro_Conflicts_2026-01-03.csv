@@ -1,0 +1,4 @@
+Event,Event_ID,Course_ID,Course_Name,Instructor,Scheduled_Days,Conflict_Days,Conflict_Dates,Issue
+Virtual-Feb,EV001,0672D,Proactive Risk Management,Brad Malone,3-4,"3, 4","2/25/2026, 2/26/2026",Instructor Unavailable
+Virtual-Jul,EV006,0102D,Aligning the Organization Through Portfolio Management,Mohamed Khalifa,3-4,"3, 4","7/22/2026, 7/23/2026",Instructor Unavailable
+San Diego,EV007,2053D,Analyst’s Guide to Gathering Product and Project Requirements ,"Joyce Brown, Thomas McCabe",1-3,"1, 2, 3","8/3/2026, 8/4/2026, 8/5/2026",Instructor Unavailable
