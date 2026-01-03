@@ -3254,8 +3254,13 @@ function loadRound() {
 
 // Toggle Reports section
 function toggleReports() {
-    const content = document.getElementById('reportsContent');
-    const toggle = document.getElementById('reportsToggle');
+    // Check which view is active
+    const isRoomGrid = document.getElementById('roomGridView').classList.contains('active');
+    const contentId = isRoomGrid ? 'reportsContentGrid' : 'reportsContent';
+    const toggleId = isRoomGrid ? 'reportsToggleGrid' : 'reportsToggle';
+    
+    const content = document.getElementById(contentId);
+    const toggle = document.getElementById(toggleId);
     
     if (content.classList.contains('expanded')) {
         content.classList.remove('expanded');
@@ -3269,8 +3274,13 @@ function toggleReports() {
 
 // Toggle Finances section
 function toggleFinances() {
-    const content = document.getElementById('financesContent');
-    const toggle = document.getElementById('financesToggle');
+    // Check which view is active
+    const isRoomGrid = document.getElementById('roomGridView').classList.contains('active');
+    const contentId = isRoomGrid ? 'financesContentGrid' : 'financesContent';
+    const toggleId = isRoomGrid ? 'financesToggleGrid' : 'financesToggle';
+    
+    const content = document.getElementById(contentId);
+    const toggle = document.getElementById(toggleId);
     
     if (content.classList.contains('expanded')) {
         content.classList.remove('expanded');
@@ -3289,6 +3299,15 @@ function updateReports() {
     updateEventUtilization();
     updateTopicsPerEvent();
     updateFinances();
+    
+    // Also update grid view reports if they exist
+    if (document.getElementById('instructorWorkloadReportGrid')) {
+        updateInstructorWorkloadGrid();
+        updateTopicCoverageGrid();
+        updateEventUtilizationGrid();
+        updateTopicsPerEventGrid();
+        updateFinancesGrid();
+    }
 }
 
 // Report 1: Instructor Workload (Revised)
@@ -3498,11 +3517,14 @@ function updateFinances() {
     ];
     
     let html = '<table class="report-table"><thead><tr>';
-    html += '<th>Event</th>';
+    html += '<th>Event</th><th>Courses</th>';
     scenarios.forEach(scenario => {
         html += `<th>${scenario.name} (${scenario.seats} seats)</th>`;
     });
     html += '</tr></thead><tbody>';
+    
+    let scenarioTotals = [0, 0, 0];
+    let totalCourses = 0;
     
     // Calculate revenue for each event
     events.forEach(event => {
@@ -3514,26 +3536,37 @@ function updateFinances() {
         );
         
         // Calculate total revenue per scenario
-        const scenarioRevenues = scenarios.map(scenario => {
+        const scenarioRevenues = scenarios.map((scenario, idx) => {
             let totalRevenue = 0;
             eventCourses.forEach(course => {
                 const price = getCoursePrice(course.Duration_Days);
                 totalRevenue += price * scenario.seats;
             });
+            scenarioTotals[idx] += totalRevenue;
             return totalRevenue;
         });
         
         html += `<tr>
-            <td><strong>${event.Event}</strong></td>`;
+            <td><strong>${event.Event}</strong></td>
+            <td>${eventCourses.length}</td>`;
         
         scenarioRevenues.forEach(revenue => {
             html += `<td>$${revenue.toLocaleString()}</td>`;
         });
         
         html += '</tr>';
+        totalCourses += eventCourses.length;
     });
     
-    html += '</tbody></table>';
+    html += `<tr style="background: #e7f3ff; font-weight: 700;">
+        <td><strong>Total</strong></td>
+        <td>${totalCourses}</td>`;
+    
+    scenarioTotals.forEach(total => {
+        html += `<td>$${total.toLocaleString()}</td>`;
+    });
+    
+    html += '</tr></tbody></table>';
     container.innerHTML = html;
 }
 
@@ -3810,52 +3843,63 @@ function updateFinancesGrid() {
         return 3228;
     }
     
-    const eventRevenue = [];
+    // Seat scenarios
+    const scenarios = [
+        { name: 'Low', seats: 10 },
+        { name: 'Mid', seats: 20 },
+        { name: 'High', seats: 30 }
+    ];
+    
+    let html = '<table class="report-table"><thead><tr>';
+    html += '<th>Event</th><th>Courses</th>';
+    scenarios.forEach(scenario => {
+        html += `<th>${scenario.name} (${scenario.seats} seats)</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    let scenarioTotals = [0, 0, 0];
+    let totalCourses = 0;
     
     events.forEach(event => {
         const eventId = event.Event_ID;
-        const eventName = event.Event;
         
-        let revenue = 0;
-        let courseCount = 0;
+        // Find all courses assigned to this event
+        const eventCourses = courses.filter(course => 
+            assignments[course.Course_ID]?.includes(eventId)
+        );
         
-        courses.forEach(course => {
-            if (assignments[course.Course_ID] && assignments[course.Course_ID].includes(eventId)) {
-                revenue += getCoursePrice(course.Duration_Days);
-                courseCount++;
-            }
+        // Calculate total revenue per scenario
+        const scenarioRevenues = scenarios.map((scenario, idx) => {
+            let totalRevenue = 0;
+            eventCourses.forEach(course => {
+                const price = getCoursePrice(course.Duration_Days);
+                totalRevenue += price * scenario.seats;
+            });
+            scenarioTotals[idx] += totalRevenue;
+            return totalRevenue;
         });
         
-        eventRevenue.push({
-            event: eventName,
-            revenue,
-            courseCount
-        });
-    });
-    
-    eventRevenue.sort((a, b) => b.revenue - a.revenue);
-    
-    let totalRevenue = eventRevenue.reduce((sum, e) => sum + e.revenue, 0);
-    
-    let html = '<table class="report-table">';
-    html += '<thead><tr><th>Event</th><th>Courses</th><th>Revenue Goal</th></tr></thead>';
-    html += '<tbody>';
-    
-    eventRevenue.forEach(row => {
         html += `<tr>
-            <td><strong>${row.event}</strong></td>
-            <td>${row.courseCount}</td>
-            <td>$${row.revenue.toLocaleString()}</td>
-        </tr>`;
+            <td><strong>${event.Event}</strong></td>
+            <td>${eventCourses.length}</td>`;
+        
+        scenarioRevenues.forEach(revenue => {
+            html += `<td>$${revenue.toLocaleString()}</td>`;
+        });
+        
+        html += '</tr>';
+        totalCourses += eventCourses.length;
     });
     
     html += `<tr style="background: #e7f3ff; font-weight: 700;">
         <td><strong>Total</strong></td>
-        <td>${courses.filter(c => assignments[c.Course_ID] && assignments[c.Course_ID].length > 0).length}</td>
-        <td>$${totalRevenue.toLocaleString()}</td>
-    </tr>`;
+        <td>${totalCourses}</td>`;
     
-    html += '</tbody></table>';
+    scenarioTotals.forEach(total => {
+        html += `<td>$${total.toLocaleString()}</td>`;
+    });
+    
+    html += '</tr></tbody></table>';
     container.innerHTML = html;
 }
 
