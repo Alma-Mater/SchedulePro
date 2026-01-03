@@ -3295,7 +3295,6 @@ function toggleFinances() {
 // Update all reports
 function updateReports() {
     updateInstructorWorkload();
-    updateTopicCoverage();
     updateEventUtilization();
     updateTopicsPerEvent();
     updateFinances();
@@ -3303,7 +3302,6 @@ function updateReports() {
     // Also update grid view reports if they exist
     if (document.getElementById('instructorWorkloadReportGrid')) {
         updateInstructorWorkloadGrid();
-        updateTopicCoverageGrid();
         updateEventUtilizationGrid();
         updateTopicsPerEventGrid();
         updateFinancesGrid();
