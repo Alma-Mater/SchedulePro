@@ -3818,10 +3818,10 @@ function renderCoursesTable() {
         return;
     }
     
-    // Find duplicates
+    // Find duplicates (trim IDs for comparison)
     const courseIdCounts = {};
     courses.forEach(c => {
-        const id = c.Course_ID;
+        const id = String(c.Course_ID || '').trim();
         courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
     });
     
@@ -3830,7 +3830,8 @@ function renderCoursesTable() {
     html += '</tr></thead><tbody>';
     
     courses.forEach((course, index) => {
-        const isDuplicate = courseIdCounts[course.Course_ID] > 1;
+        const courseId = String(course.Course_ID || '').trim();
+        const isDuplicate = courseIdCounts[courseId] > 1;
         const rowClass = isDuplicate ? 'duplicate-warning' : '';
         
         html += `<tr class="${rowClass}">
@@ -3849,7 +3850,7 @@ function renderCoursesTable() {
     const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
     if (duplicateCount > 0) {
         html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
-            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow.
+            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow and sorted together.
         </div>` + html;
     }
     
@@ -3866,28 +3867,37 @@ function renderCoursesTableGrid() {
         return;
     }
     
-    // Find duplicates
+    // Find duplicates (trim IDs for comparison)
     const courseIdCounts = {};
     courses.forEach(c => {
-        const id = c.Course_ID;
+        const id = String(c.Course_ID || '').trim();
         courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
+    });
+    
+    // Sort courses by Course_ID so duplicates appear together
+    const sortedCourses = [...courses].sort((a, b) => {
+        const idA = String(a.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        return idA.localeCompare(idB);
     });
     
     let html = '<table class="report-table"><thead><tr>';
     html += '<th>Course ID</th><th>Course Name</th><th>Instructor</th><th>Duration (Days)</th><th>Topic</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
     
-    courses.forEach((course, index) => {
-        const isDuplicate = courseIdCounts[course.Course_ID] > 1;
+    sortedCourses.forEach((course, index) => {
+        const courseId = String(course.Course_ID || '').trim();
+        const isDuplicate = courseIdCounts[courseId] > 1;
+        const originalIndex = courses.indexOf(course);
         const rowClass = isDuplicate ? 'duplicate-warning' : '';
         
         html += `<tr class="${rowClass}">
-            <td class="editable-cell" data-index="${index}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
-            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${index})" title="Delete this course">🗑️</button></td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
         </tr>`;
     });
     
@@ -3897,7 +3907,7 @@ function renderCoursesTableGrid() {
     const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
     if (duplicateCount > 0) {
         html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
-            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow.
+            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow and sorted together.
         </div>` + html;
     }
     
