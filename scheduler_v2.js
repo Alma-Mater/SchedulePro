@@ -238,6 +238,32 @@ async function saveRoundData() {
             console.log(`✓ Saved ${scheduleData.length} schedule entries`);
         }
         
+        // Save change log
+        if (changeLog.length > 0) {
+            await supabaseDb.from('change_log').delete().neq('id', 0);
+            const changeLogData = changeLog.map(entry => ({
+                timestamp: entry.timestamp,
+                action: entry.action,
+                course_id: entry.courseId,
+                course_title: entry.courseTitle,
+                instructor: entry.instructor,
+                event_id: entry.eventId,
+                first_day: entry.firstDay,
+                last_day: entry.lastDay,
+                old_first_day: entry.oldFirstDay,
+                old_last_day: entry.oldLastDay,
+                notes: entry.notes,
+                csi_ticket: entry.csiTicket || null
+            }));
+            const { error: changeLogError } = await supabaseDb.from('change_log').insert(changeLogData);
+            if (changeLogError) {
+                console.error('❌ Error saving change log:', changeLogError);
+                // Don't return - this is non-critical
+            } else {
+                console.log(`✓ Saved ${changeLog.length} change log entries`);
+            }
+        }
+        
         console.log('✅ All data saved to Supabase successfully!');
     } catch (error) {
         console.error('❌ Critical save error:', error);
@@ -635,6 +661,28 @@ async function loadRoundData() {
         rebuildAssignments();
         calculateUnavailabilityMap(); // Convert date ranges to day-based format
         calculateEventRooms();
+
+        // Load change log
+        const { data: changeLogData, error: changeLogError } = await supabaseDb.from('change_log').select('*');
+        if (changeLogError) {
+            console.warn('⚠ Could not load change log:', changeLogError);
+        } else if (changeLogData && changeLogData.length > 0) {
+            changeLog = changeLogData.map(entry => ({
+                timestamp: entry.timestamp,
+                action: entry.action,
+                courseId: entry.course_id,
+                courseTitle: entry.course_title,
+                instructor: entry.instructor,
+                eventId: entry.event_id,
+                firstDay: entry.first_day,
+                lastDay: entry.last_day,
+                oldFirstDay: entry.old_first_day,
+                oldLastDay: entry.old_last_day,
+                notes: entry.notes,
+                csiTicket: entry.csi_ticket || ''
+            }));
+            console.log(`✓ Loaded ${changeLog.length} change log entries`);
+        }
 
         hasLoadedRoundDataFromSupabase = true;
 
@@ -4130,12 +4178,15 @@ function renderChangeLogGrid() {
             const dateInfo = entry.firstDay && entry.lastDay ? `${entry.firstDay} to ${entry.lastDay}` : '';
             const oldDateInfo = entry.oldFirstDay && entry.oldLastDay ? `Was: ${entry.oldFirstDay} to ${entry.oldLastDay}` : '';
             
+            // Combine old date info and notes
+            const notesDisplay = [entry.notes, oldDateInfo].filter(Boolean).join(' | ');
+            
             html += `<tr>
                 <td style="white-space: nowrap;">${entry.timestamp || ''}</td>
                 <td><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 3px; font-size: 0.85em;">Schedule</span></td>
                 <td>${action}</td>
                 <td>${courseInfo}<br><small style="color: #666;">${dateInfo}</small></td>
-                <td><small style="color: #666;">${oldDateInfo || entry.notes || ''}</small></td>
+                <td><small style="color: #666;">${notesDisplay}</small></td>
             </tr>`;
         } else {
             // Upload/system log entry
