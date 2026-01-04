@@ -1316,14 +1316,21 @@ function completeReset() {
             // Update all views
             renderAssignmentGrid();
             updateStats();
-            renderSwimlanesGrid();
-            updateReportsGrid();
             
-            // Stay on room grid view if that's where we were
+            // Restore room grid view if it was active
             if (isRoomGridActive) {
-                // Already there, just refresh
+                // Keep room grid view active
+                document.getElementById('gridView').classList.remove('active');
+                document.getElementById('configureDaysView').classList.remove('active');
+                document.getElementById('roomCapacityView').classList.remove('active');
+                document.getElementById('roomGridView').classList.add('active');
+                renderSwimlanesGrid();
+                updateReportsGrid();
                 console.log('Staying on room grid view');
             } else {
+                // Just refresh the current view
+                renderSwimlanesGrid();
+                updateReportsGrid();
                 console.log('Reset complete, staying on current view');
             }
             
