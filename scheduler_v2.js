@@ -3555,6 +3555,21 @@ function toggleReports() {
 }
 
 // Toggle Finances section
+// Toggle conflicts section
+function toggleConflictsGrid() {
+    const content = document.getElementById('conflictsContentGrid');
+    const toggle = document.getElementById('conflictsToggleGrid');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        updateConflictsGrid();
+    }
+}
+
 function toggleFinances() {
     // Check which view is active
     const isRoomGrid = document.getElementById('roomGridView').classList.contains('active');
@@ -3587,6 +3602,7 @@ function updateReports() {
         updateEventUtilizationGrid();
         updateTopicsPerEventGrid();
         updateFinancesGrid();
+        updateConflictsGrid();
     }
 }
 
@@ -4100,6 +4116,83 @@ function updateEventUtilizationGrid() {
             <td>${filledDays}</td>
             <td>${emptyDays}</td>
             <td>${instructorCount}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateConflictsGrid() {
+    const container = document.getElementById('conflictsReportGrid');
+    if (!container) return;
+    
+    if (events.length === 0 || courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No events or courses loaded yet.</p>';
+        return;
+    }
+    
+    const conflicts = [];
+    
+    // Loop through all events and courses to find conflicts
+    events.forEach(event => {
+        const eventId = event.Event_ID;
+        const eventName = event.Event;
+        
+        courses.forEach(course => {
+            // Only check if course is assigned to this event
+            if (!assignments[course.Course_ID]?.includes(eventId)) return;
+            
+            const placement = schedule[eventId]?.[course.Course_ID];
+            if (!placement?.startDay) return; // Skip unplaced courses
+            
+            // Get blocked days for this instructor at this event
+            const blockedDays = getBlockedDays(course.Instructor, eventId);
+            if (blockedDays.length === 0) return; // No unavailability
+            
+            // Calculate course days
+            const daysNeeded = Math.ceil(parseFloat(course.Duration_Days));
+            const courseDays = [];
+            for (let i = 0; i < daysNeeded; i++) {
+                courseDays.push(placement.startDay + i);
+            }
+            
+            // Check for conflicts
+            const conflictDays = courseDays.filter(day => blockedDays.includes(day));
+            if (conflictDays.length > 0) {
+                // Get actual dates for conflict days
+                const days = eventDays.filter(d => d.Event_ID === eventId);
+                const conflictDates = conflictDays.map(dayNum => {
+                    const day = days.find(d => parseInt(d.Day_Number) === dayNum);
+                    return day ? day.Day_Date : `Day ${dayNum}`;
+                }).join(', ');
+                
+                conflicts.push({
+                    Event: eventName,
+                    Course_Name: course.Course_Name,
+                    Instructor: course.Instructor,
+                    Conflict_Dates: conflictDates
+                });
+            }
+        });
+    });
+    
+    if (conflicts.length === 0) {
+        container.innerHTML = '<p style="color: #28a745; font-weight: bold;">✅ No conflicts found! All courses are scheduled without instructor unavailability issues.</p>';
+        return;
+    }
+    
+    let html = `<p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">⚠️ Found ${conflicts.length} scheduling conflict${conflicts.length !== 1 ? 's' : ''}:</p>`;
+    html += '<table class="report-table"><thead><tr>';
+    html += '<th>Event</th><th>Course</th><th>Instructor</th><th>Conflict Dates</th>';
+    html += '</tr></thead><tbody>';
+    
+    conflicts.forEach(conflict => {
+        html += `<tr>
+            <td>${conflict.Event}</td>
+            <td>${conflict.Course_Name}</td>
+            <td>${conflict.Instructor}</td>
+            <td style="color: #dc3545;">${conflict.Conflict_Dates}</td>
         </tr>`;
     });
     
