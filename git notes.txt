@@ -1,0 +1,48 @@
+git notes
+
+
+Inquired about git branching strategy
+To safely experiment with Firebase while preserving your localStorage implementation:
+
+Create a new branch for Firebase work:
+
+
+git checkout -b firebase-datastore
+This creates and switches to a new branch called firebase-datastore. All your changes will now be isolated here.
+
+To switch back to your main version (with localStorage):
+
+
+git checkout main
+To switch back to Firebase branch:
+
+
+git checkout firebase-datastore
+When you're done with Firebase development:
+
+If it works and you want to keep it:
+
+
+git checkout maingit merge firebase-datastore
+If you want to abandon it and delete the branch:
+
+
+git checkout maingit branch -D firebase-datastore
+View all branches:
+
+
+git branch
+(The asterisk shows your current branch)
+
+Commit regularly on the Firebase branch:
+
+
+git add .git commit -m "Add Firebase authentication"git push -u origin firebase-datastore
+This way your localStorage version stays intact on main, and you can freely experiment with Firebase on the separate branch without any risk.
+
+No, only for the first push. The -u flag sets the upstream tracking, so after you run:
+
+Once, you can then just use:
+
+For all subsequen
+

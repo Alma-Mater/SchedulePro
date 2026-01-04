@@ -6,6 +6,9 @@ __pycache__/
 *.so
 .Python
 
+# Supabase config
+supabase-config.js
+
 # IDEs
 .vscode/
 .idea/

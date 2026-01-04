@@ -6,6 +6,10 @@
     <title>SchedulePro - Event Course Scheduler</title>
     <!-- SheetJS library for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Supabase client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase configuration -->
+    <script src="supabase-config.js"></script>
     <style>
         * {
             margin: 0;
@@ -406,6 +410,118 @@
 
         .report-table tr:last-child td {
             border-bottom: none;
+        }
+
+        /* Auth Modal */
+        .auth-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-overlay.active {
+            display: flex;
+        }
+
+        .auth-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .auth-modal h2 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .auth-modal p {
+            color: #6c757d;
+            margin-bottom: 30px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .auth-btn:hover {
+            background: #5568d3;
+        }
+
+        .auth-btn.secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .auth-btn.secondary:hover {
+            background: #f8f9fa;
+        }
+
+        .auth-error {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .auth-success {
+            color: #28a745;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .workload-bar {
@@ -874,11 +990,32 @@
     </style>
 </head>
 <body>
+    <!-- Auth Modal -->
+    <div id="authOverlay" class="auth-overlay active">
+        <div class="auth-modal">
+            <h2>🔐 Welcome to SchedulePro</h2>
+            <p id="authMessage">Sign in to access your schedules</p>
+            
+            <div id="authError" class="auth-error" style="display: none;"></div>
+            <div id="authSuccess" class="auth-success" style="display: none;"></div>
+            
+            <input type="email" id="authEmail" class="auth-input" placeholder="Email address" />
+            <input type="password" id="authPassword" class="auth-input" placeholder="Password" />
+            
+            <button class="auth-btn" onclick="handleLogin()">Sign In</button>
+            <button class="auth-btn secondary" onclick="handleSignUp()">Create Account</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <button class="year-button" onclick="return false;">2026</button>
             <h1>📅 SchedulePro</h1>
             <p>Easy-to-Use Course Scheduling for Event Planners</p>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userEmail"></span>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -1191,5 +1328,121 @@
     </div>
 
     <script src="scheduler_v2.js"></script>
+    <script>
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        let currentUser = null;
+
+        // Check auth state on load
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showApp();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        // Login
+        async function handleLogin() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                showError('Please enter email and password');
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                showError(error.message);
+            } else {
+                currentUser = data.user;
+                showApp();
+                await loadDataFromSupabase();
+            }
+        }
+
+        // Sign up
+        async function handleSignUp() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                showError('Please enter email and password');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                showError(error.message);
+            } else {
+                showSuccess('Account created! Check your email to confirm (or sign in if email confirmation is disabled)');
+                // Some Supabase projects auto-confirm, try logging in
+                setTimeout(() => handleLogin(), 2000);
+            }
+        }
+
+        // Logout
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            showAuthModal();
+        }
+
+        // Show/hide UI
+        function showAuthModal() {
+            document.getElementById('authOverlay').classList.add('active');
+        }
+
+        function showApp() {
+            document.getElementById('authOverlay').classList.remove('active');
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('userEmail').textContent = currentUser.email;
+            clearAuthFields();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('authError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('authSuccess');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function clearAuthFields() {
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authError').style.display = 'none';
+            document.getElementById('authSuccess').style.display = 'none';
+        }
+
+        // Start auth check
+        checkAuth();
+    </script>
 </body>
 </html>
