@@ -4027,7 +4027,10 @@ function renderCoursesTableGrid() {
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
-                <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
+                <td>
+                    <button class="btn btn-small" style="background: #856404; color: white; margin-right: 4px;" onclick="mergeDuplicates('${courseId}')" title="Merge duplicates with this Course ID">Merge</button>
+                    <button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button>
+                </td>
             </tr>`;
         });
         
@@ -4108,20 +4111,77 @@ function editCell(cell) {
     input.select();
 }
 
-// Delete course
-function deleteCourse(index) {
-    const course = courses[index];
-    if (!confirm(`Delete course "${course.Course_Name}" (${course.Course_ID})?\n\nThis will also remove all assignments and schedules for this course.`)) {
+// Merge duplicate courses with the same Course_ID
+function mergeDuplicates(courseId) {
+    const trimmedId = String(courseId).trim();
+    
+    // Find all courses with this Course_ID
+    const duplicateCourses = [];
+    courses.forEach((course, index) => {
+        if (String(course.Course_ID || '').trim() === trimmedId) {
+            duplicateCourses.push({ course, index });
+        }
+    });
+    
+    if (duplicateCourses.length <= 1) {
+        alert('No duplicates found for this Course ID.');
         return;
     }
     
-    const courseId = course.Course_ID;
+    // Build selection dialog
+    let message = `Found ${duplicateCourses.length} courses with ID "${trimmedId}".\n\nSelect which one to KEEP (others will be deleted):\n\n`;
+    duplicateCourses.forEach((item, i) => {
+        const c = item.course;
+        message += `${i + 1}. ${c.Course_Name || 'Unnamed'} - Instructor: ${c.Instructor || 'N/A'} - Duration: ${c.Duration_Days || 'N/A'} days\n`;
+    });
+    message += `\nEnter the number (1-${duplicateCourses.length}) of the course to keep:`;
+    
+    const choice = prompt(message);
+    if (!choice) return; // User cancelled
+    
+    const choiceNum = parseInt(choice);
+    if (isNaN(choiceNum) || choiceNum < 1 || choiceNum > duplicateCourses.length) {
+        alert('Invalid selection. Please enter a number between 1 and ' + duplicateCourses.length);
+        return;
+    }
+    
+    // Keep the selected course, delete the others
+    const keepIndex = duplicateCourses[choiceNum - 1].index;
+    
+    // Sort indices in reverse order to delete from end to beginning (to maintain correct indices)
+    const indicesToDelete = duplicateCourses
+        .map(item => item.index)
+        .filter(idx => idx !== keepIndex)
+        .sort((a, b) => b - a);
+    
+    // Delete the courses we're not keeping
+    indicesToDelete.forEach(idx => {
+        courses.splice(idx, 1);
+    });
+    
+    // Update all views
+    renderCoursesTable();
+    renderCoursesTableGrid();
+    renderSwimlanesGrid();
+    updateReportsGrid();
+    
+    alert(`Merged successfully! Kept 1 course and removed ${indicesToDelete.length} duplicate(s).`);
+}
+
+// Delete course
+function deleteCourse(index) {
+    const course = courses[index];
+    if (!confirm(`Delete course "${course.Course_Name}" (${course.Course_ID})?\n\nThis will remove this course entry from the list.`)) {
+        return;
+    }
+    
+    const courseId = String(course.Course_ID || '').trim();
     
     // Remove from courses array
     courses.splice(index, 1);
     
-    // Check if there are any other courses with the same Course_ID
-    const otherCoursesWithSameId = courses.some(c => c.Course_ID === courseId);
+    // Check if there are any other courses with the same Course_ID (trimmed comparison)
+    const otherCoursesWithSameId = courses.some(c => String(c.Course_ID || '').trim() === courseId);
     
     // Only remove assignments and schedule if no other courses have this ID
     if (!otherCoursesWithSameId) {
@@ -4139,6 +4199,8 @@ function deleteCourse(index) {
     // Update all views
     renderCoursesTable();
     renderCoursesTableGrid();
+    renderSwimlanesGrid();
+    updateReportsGrid();
     renderAssignmentGrid();
     renderSwimlanesGrid();
     updateStats();
