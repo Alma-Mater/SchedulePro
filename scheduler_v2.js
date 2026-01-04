@@ -962,6 +962,8 @@ function setupExcelFileInput() {
             renderAssignmentGrid();
             updateStats();
             updateConfigureDaysButton();
+            renderSwimlanesGrid(); // Update Room Grid view if active
+            updateReportsGrid(); // Update Room Grid reports
             triggerAutoSave();
             
             // Show results
@@ -3064,6 +3066,8 @@ function importSchedule(scheduleData, fileName) {
     renderAssignmentGrid();
     updateStats();
     updateConfigureDaysButton();
+    renderSwimlanesGrid(); // Update Room Grid view if active
+    updateReportsGrid(); // Update Room Grid reports
     triggerAutoSave();
     
     // Show results
