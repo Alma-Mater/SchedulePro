@@ -1,3 +1,3 @@
 // Supabase Configuration
 const SUPABASE_URL = 'https://ejynlffmwiscbxrfaiyk.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'LYWTrec15ENk2DNBCcm8jg_aFn1yISk';
+const SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeW5sZmZtd2lzY2J4cmZhaXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0ODg4NzAsImV4cCI6MjA4MzA2NDg3MH0.SGQaShmz8AQ1FMbClMcMtaflhbswYVBPce-9MpAzCLs';
