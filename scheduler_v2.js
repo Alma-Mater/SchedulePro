@@ -92,13 +92,13 @@ let uploadsLog = [];
 let errorsLog = [];
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Supabase connection
+    initSupabase();
+    
     loadLogs();
-    loadRoundData(); // Load saved round data if it exists
     
-    // Start with blank slate - no auto-loading of default data
-    // Client must upload their own Dates.csv to begin
-    
+    // Setup file inputs first
     setupFileInput();
     setupRoomsFileInput();
     setupUnavailabilityFileInput();
@@ -106,6 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventsFileInput();
     setupExcelFileInput();
     // setupEventDaysFileInput(); // Commented out - element removed from HTML (using consolidated Dates.csv)
+    
+    // Load data from Supabase (async)
+    await loadRoundData();
 });
 
 // Load logs from localStorage
@@ -416,6 +419,9 @@ async function loadRoundData() {
         if (courses.length > 0 || events.length > 0) {
             renderAssignmentGrid();
             renderSwimlanes();
+            renderSwimlanesGrid(); // Render Room Grid view
+            updateReportsGrid(); // Update Room Grid reports
+            renderCoursesTableGrid(); // Update courses table
             updateStats();
             updateConfigureDaysButton();
         }
@@ -964,6 +970,7 @@ function setupExcelFileInput() {
             updateConfigureDaysButton();
             renderSwimlanesGrid(); // Update Room Grid view if active
             updateReportsGrid(); // Update Room Grid reports
+            renderCoursesTableGrid(); // Update courses table
             triggerAutoSave();
             
             // Show results
@@ -1532,12 +1539,23 @@ function goToConfigureDays() {
 
 // Go to room grid view
 function goToRoomGridView() {
+    console.log('Switching to Room Grid View...');
     document.getElementById('gridView').classList.remove('active');
     document.getElementById('configureDaysView').classList.remove('active');
     document.getElementById('roomCapacityView').classList.remove('active');
     document.getElementById('roomGridView').classList.add('active');
-    renderSwimlanesGrid();
-    updateReportsGrid(); // Update reports when entering Room Grid view
+    
+    // Render with small delay to ensure DOM is ready
+    setTimeout(() => {
+        try {
+            renderSwimlanesGrid();
+            updateReportsGrid();
+            renderCoursesTableGrid();
+            console.log('Room Grid View rendered successfully');
+        } catch (error) {
+            console.error('Error rendering Room Grid View:', error);
+        }
+    }, 50);
 }
 
 // Go to room capacity view
@@ -3098,6 +3116,7 @@ function importSchedule(scheduleData, fileName) {
     updateConfigureDaysButton();
     renderSwimlanesGrid(); // Update Room Grid view if active
     updateReportsGrid(); // Update Room Grid reports
+    renderCoursesTableGrid(); // Update courses table
     triggerAutoSave();
     
     // Show results
@@ -3825,32 +3844,98 @@ function renderCoursesTable() {
         courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
     });
     
+    // Separate duplicates from non-duplicates
+    const duplicates = [];
+    const nonDuplicates = [];
+    
+    courses.forEach(course => {
+        const courseId = String(course.Course_ID || '').trim();
+        if (courseIdCounts[courseId] > 1) {
+            duplicates.push(course);
+        } else {
+            nonDuplicates.push(course);
+        }
+    });
+    
+    // Sort duplicates by Course_ID (so same IDs are together)
+    duplicates.sort((a, b) => {
+        const idA = String(a.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        return idA.localeCompare(idB);
+    });
+    
+    // Sort non-duplicates by Course_ID
+    nonDuplicates.sort((a, b) => {
+        const idA = String(a.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        return idA.localeCompare(idB);
+    });
+    
     let html = '<table class="report-table"><thead><tr>';
     html += '<th>Course ID</th><th>Course Name</th><th>Instructor</th><th>Duration (Days)</th><th>Topic</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
     
-    courses.forEach((course, index) => {
-        const courseId = String(course.Course_ID || '').trim();
-        const isDuplicate = courseIdCounts[courseId] > 1;
-        const rowClass = isDuplicate ? 'duplicate-warning' : '';
+    // Render duplicates first
+    if (duplicates.length > 0) {
+        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">⚠ Duplicate Course IDs detected</td></tr>';
         
-        html += `<tr class="${rowClass}">
-            <td class="editable-cell" data-index="${index}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
-            <td class="editable-cell" data-index="${index}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
-            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${index})" title="Delete this course">🗑️</button></td>
+        duplicates.forEach(course => {
+            const originalIndex = courses.indexOf(course);
+            
+            // Find where this course is scheduled
+            const courseId = String(course.Course_ID || '').trim();
+            const scheduledLocations = [];
+            
+            // Check if this course is assigned to any events (assignments is object: { courseId: [eventIds] })
+            const assignedEventIds = assignments[courseId] || [];
+            assignedEventIds.forEach(eventId => {
+                if (schedule[eventId] && schedule[eventId][courseId]) {
+                    const courseSchedule = schedule[eventId][courseId];
+                    const event = events.find(e => e.Event_ID === eventId);
+                    const eventName = event ? event.Event_Name : eventId;
+                    scheduledLocations.push(`${eventName} - Day ${courseSchedule.startDay}, Room ${courseSchedule.roomNumber}`);
+                }
+            });
+            
+            const scheduleInfo = scheduledLocations.length > 0 
+                ? 'Scheduled in: ' + scheduledLocations.join('; ') 
+                : 'Not yet scheduled';
+            
+            html += `<tr class="duplicate-warning" title="${scheduleInfo}">
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)" title="${scheduleInfo}">${course.Course_ID || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)" title="${scheduleInfo}">${course.Course_Name || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+                <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
+            </tr>`;
+        });
+        
+        // Add separator row
+        html += '<tr style="background: #f8f9fa; height: 2px;"><td colspan="6" style="padding: 0; border-top: 2px solid #dee2e6;"></td></tr>';
+        html += '<tr style="background: #f8f9fa;"><td colspan="6" style="padding: 8px 10px; color: #6c757d; font-size: 0.9em;">All courses</td></tr>';
+    }
+    
+    // Render non-duplicates
+    nonDuplicates.forEach(course => {
+        const originalIndex = courses.indexOf(course);
+        html += `<tr>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+            <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
         </tr>`;
     });
     
     html += '</tbody></table>';
     
-    // Show duplicate warning if any found
-    const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
-    if (duplicateCount > 0) {
-        html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
-            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow and sorted together.
+    // Show duplicate note if any found
+    if (duplicates.length > 0) {
+        const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
+        html = `<div style="background: #fff4e6; padding: 10px; border-left: 3px solid #ffc107; margin-bottom: 15px;">
+            <span style="color: #856404;">Note:</span> ${duplicateCount} duplicate Course ID(s) detected at the top of the table. Hover over rows to see where they're scheduled.
         </div>` + html;
     }
     
@@ -3874,8 +3959,28 @@ function renderCoursesTableGrid() {
         courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
     });
     
-    // Sort courses by Course_ID so duplicates appear together
-    const sortedCourses = [...courses].sort((a, b) => {
+    // Separate duplicates from non-duplicates
+    const duplicates = [];
+    const nonDuplicates = [];
+    
+    courses.forEach(course => {
+        const courseId = String(course.Course_ID || '').trim();
+        if (courseIdCounts[courseId] > 1) {
+            duplicates.push(course);
+        } else {
+            nonDuplicates.push(course);
+        }
+    });
+    
+    // Sort duplicates by Course_ID (so same IDs are together)
+    duplicates.sort((a, b) => {
+        const idA = String(a.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        return idA.localeCompare(idB);
+    });
+    
+    // Sort non-duplicates by Course_ID
+    nonDuplicates.sort((a, b) => {
         const idA = String(a.Course_ID || '').trim().toLowerCase();
         const idB = String(b.Course_ID || '').trim().toLowerCase();
         return idA.localeCompare(idB);
@@ -3885,13 +3990,51 @@ function renderCoursesTableGrid() {
     html += '<th>Course ID</th><th>Course Name</th><th>Instructor</th><th>Duration (Days)</th><th>Topic</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
     
-    sortedCourses.forEach((course, index) => {
-        const courseId = String(course.Course_ID || '').trim();
-        const isDuplicate = courseIdCounts[courseId] > 1;
-        const originalIndex = courses.indexOf(course);
-        const rowClass = isDuplicate ? 'duplicate-warning' : '';
+    // Render duplicates first
+    if (duplicates.length > 0) {
+        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">⚠ Duplicate Course IDs detected</td></tr>';
         
-        html += `<tr class="${rowClass}">
+        duplicates.forEach(course => {
+            const originalIndex = courses.indexOf(course);
+            
+            // Find where this course is scheduled
+            const courseId = String(course.Course_ID || '').trim();
+            const scheduledLocations = [];
+            
+            // Check if this course is assigned to any events (assignments is object: { courseId: [eventIds] })
+            const assignedEventIds = assignments[courseId] || [];
+            assignedEventIds.forEach(eventId => {
+                if (schedule[eventId] && schedule[eventId][courseId]) {
+                    const courseSchedule = schedule[eventId][courseId];
+                    const event = events.find(e => e.Event_ID === eventId);
+                    const eventName = event ? event.Event_Name : eventId;
+                    scheduledLocations.push(`${eventName} - Day ${courseSchedule.startDay}, Room ${courseSchedule.roomNumber}`);
+                }
+            });
+            
+            const scheduleInfo = scheduledLocations.length > 0 
+                ? 'Scheduled in: ' + scheduledLocations.join('; ') 
+                : 'Not yet scheduled';
+            
+            html += `<tr class="duplicate-warning" title="${scheduleInfo}">
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)" title="${scheduleInfo}">${course.Course_ID || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)" title="${scheduleInfo}">${course.Course_Name || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+                <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+                <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
+            </tr>`;
+        });
+        
+        // Add separator row
+        html += '<tr style="background: #f8f9fa; height: 2px;"><td colspan="6" style="padding: 0; border-top: 2px solid #dee2e6;"></td></tr>';
+        html += '<tr style="background: #f8f9fa;"><td colspan="6" style="padding: 8px 10px; color: #6c757d; font-size: 0.9em;">All courses</td></tr>';
+    }
+    
+    // Render non-duplicates
+    nonDuplicates.forEach(course => {
+        const originalIndex = courses.indexOf(course);
+        html += `<tr>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
@@ -3903,11 +4046,11 @@ function renderCoursesTableGrid() {
     
     html += '</tbody></table>';
     
-    // Show duplicate warning if any found
-    const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
-    if (duplicateCount > 0) {
-        html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
-            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow and sorted together.
+    // Show duplicate note if any found
+    if (duplicates.length > 0) {
+        const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
+        html = `<div style="background: #fff4e6; padding: 10px; border-left: 3px solid #ffc107; margin-bottom: 15px;">
+            <span style="color: #856404;">Note:</span> ${duplicateCount} duplicate Course ID(s) detected at the top of the table. Hover over rows to see where they're scheduled.
         </div>` + html;
     }
     
