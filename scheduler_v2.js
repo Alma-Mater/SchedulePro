@@ -1278,6 +1278,9 @@ function completeReset() {
         console.log('Reset confirmed - clearing data...');
         
         try {
+            // Remember current view
+            const isRoomGridActive = document.getElementById('roomGridView')?.classList.contains('active');
+            
             // Clear all data structures
             courses = [];
             events = [];
@@ -1300,10 +1303,30 @@ function completeReset() {
             localStorage.removeItem('schedulepro_errors');
             
             console.log('localStorage cleared');
-            console.log('Reloading page...');
             
-            // Force reload from server, not cache
-            window.location.href = window.location.href;
+            // Clear Supabase data if connected
+            if (supabaseDb) {
+                supabaseDb.from('events').delete().neq('id', 0);
+                supabaseDb.from('courses').delete().neq('id', 0);
+                supabaseDb.from('event_days').delete().neq('id', 0);
+                supabaseDb.from('instructor_unavailability').delete().neq('id', 0);
+                supabaseDb.from('schedule').delete().neq('id', 0);
+            }
+            
+            // Update all views
+            renderAssignmentGrid();
+            updateStats();
+            renderSwimlanesGrid();
+            updateReportsGrid();
+            
+            // Stay on room grid view if that's where we were
+            if (isRoomGridActive) {
+                // Already there, just refresh
+                console.log('Staying on room grid view');
+            } else {
+                console.log('Reset complete, staying on current view');
+            }
+            
         } catch (error) {
             console.error('Error during reset:', error);
         }
