@@ -5514,12 +5514,14 @@ function renderSwimlanesGrid() {
                     </span>
                     ${!isVirtual ? `<span style="min-width: 150px;">${bookingStatus}</span>` : ''}
                     ${eventDraftCount > 0 ? `<span style="color: #ff9800; font-weight: 700; min-width: 80px;">Drafts: ${eventDraftCount}</span>` : ''}
-                    <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
-                          style="cursor: pointer; opacity: 0.9; padding: 0 5px; font-size: 1.1em;" 
-                          title="${lockTitle}">${lockIcon}</span>
                     ${conflictIndicator}
                 </div>
-                <span id="toggle-grid-${eventId}">${toggleText}</span>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span onclick="event.stopPropagation(); toggleEventLock('${eventId}')" 
+                          style="cursor: pointer; opacity: 0.9; padding: 5px 8px; font-size: 1.1em;" 
+                          title="${lockTitle}">${lockIcon}</span>
+                    <span id="toggle-grid-${eventId}">${toggleText}</span>
+                </div>
             </div>
             <div class="${bodyClass}" id="body-grid-${eventId}">
                 ${dayTimelineHTML}
