@@ -19,6 +19,35 @@ let currentTimeline = null;
 // Supabase load guard: avoid destructive saves if initial load failed
 let hasLoadedRoundDataFromSupabase = false;
 
+// Action modal state
+let actionModalCallback = null;
+
+// Show action confirmation modal
+function showActionModal(title, message, confirmCallback) {
+    document.getElementById('actionModalTitle').textContent = title;
+    document.getElementById('actionModalMessage').textContent = message;
+    document.getElementById('actionComment').value = '';
+    document.getElementById('actionModal').style.display = 'flex';
+    
+    actionModalCallback = confirmCallback;
+    
+    // Set up confirm button click handler
+    const confirmBtn = document.getElementById('actionModalConfirm');
+    confirmBtn.onclick = function() {
+        const comment = document.getElementById('actionComment').value.trim();
+        closeActionModal();
+        if (actionModalCallback) {
+            actionModalCallback(comment);
+        }
+    };
+}
+
+// Close action modal
+function closeActionModal() {
+    document.getElementById('actionModal').style.display = 'none';
+    actionModalCallback = null;
+}
+
 // Initialize Supabase reference from global
 function initSupabase() {
     if (typeof window.supabaseClient !== 'undefined') {
@@ -689,14 +718,14 @@ function logChange(action, courseId, eventId, newDays, oldDays = null, notes = '
 }
 
 // Log an upload action
-function logUpload(uploadType, fileName, recordsCount, status, notes = '') {
+function logUpload(uploadType, fileName, recordsCount, status, notes = '', userComment = '') {
     const entry = {
         timestamp: getTimestamp(),
         uploadType: uploadType,
         fileName: fileName,
         recordsCount: recordsCount,
         status: status,
-        notes: notes
+        notes: userComment ? `User: ${userComment}${notes ? ' | ' : ''}${notes}` : notes
     };
     
     uploadsLog.push(entry);
@@ -4421,6 +4450,7 @@ function mergeDuplicates(courseId) {
     
     // Keep the selected course, delete the others
     const keepIndex = duplicateCourses[choiceNum - 1].index;
+    const keepCourseName = duplicateCourses[choiceNum - 1].course.Course_Name;
     
     // Sort indices in reverse order to delete from end to beginning (to maintain correct indices)
     const indicesToDelete = duplicateCourses
@@ -4428,56 +4458,73 @@ function mergeDuplicates(courseId) {
         .filter(idx => idx !== keepIndex)
         .sort((a, b) => b - a);
     
-    // Delete the courses we're not keeping
-    indicesToDelete.forEach(idx => {
-        courses.splice(idx, 1);
-    });
-    
-    // Log the merge
-    const keptCourse = courses.find(c => String(c.Course_ID || '').trim() === trimmedId);
-    logUpload('COURSE_MERGE', trimmedId, indicesToDelete.length, 'Merged', `Kept "${keptCourse?.Course_Name || 'Unknown'}" and removed ${indicesToDelete.length} duplicate(s) with Course ID "${trimmedId}"`);
-    
-    // Update all views
-    renderCoursesTable();
-    renderCoursesTableGrid();
-    renderSwimlanesGrid();
-    updateReportsGrid();
-    
-    alert(`Merged successfully! Kept 1 course and removed ${indicesToDelete.length} duplicate(s).`);
+    // Show confirmation modal
+    showActionModal(
+        'Merge Duplicates',
+        `You are about to merge ${duplicateCourses.length} duplicate courses with ID "${trimmedId}".\n\nKeeping: "${keepCourseName}"\nDeleting: ${indicesToDelete.length} duplicate(s)`,
+        function(comment) {
+            // Delete the courses we're not keeping
+            indicesToDelete.forEach(idx => {
+                courses.splice(idx, 1);
+            });
+            
+            // Log the merge with comment
+            const keptCourse = courses.find(c => String(c.Course_ID || '').trim() === trimmedId);
+            const notes = `Kept "${keptCourse?.Course_Name || 'Unknown'}" and removed ${indicesToDelete.length} duplicate(s) with Course ID "${trimmedId}"`;
+            logUpload('COURSE_MERGE', trimmedId, indicesToDelete.length, 'Merged', notes, comment);
+            
+            // Update all views
+            renderCoursesTable();
+            renderCoursesTableGrid();
+            renderSwimlanesGrid();
+            updateReportsGrid();
+            
+            alert(`Merged successfully! Kept 1 course and removed ${indicesToDelete.length} duplicate(s).`);
+        }
+    );
 }
 
 // Delete course
 function deleteCourse(index) {
     const course = courses[index];
-    if (!confirm(`Delete course "${course.Course_Name}" (${course.Course_ID})?\n\nThis will remove this course entry from the list.`)) {
-        return;
-    }
-    
     const courseId = String(course.Course_ID || '').trim();
     
-    // Remove from courses array
-    courses.splice(index, 1);
-    
-    // Check if there are any other courses with the same Course_ID (trimmed comparison)
-    const otherCoursesWithSameId = courses.some(c => String(c.Course_ID || '').trim() === courseId);
-    
-    // Only remove assignments and schedule if no other courses have this ID
-    if (!otherCoursesWithSameId) {
-        // Remove from assignments
-        delete assignments[courseId];
-        
-        // Remove from schedule
-        for (const eventId in schedule) {
-            if (schedule[eventId][courseId]) {
-                delete schedule[eventId][courseId];
+    showActionModal(
+        'Delete Course',
+        `Are you sure you want to delete "${course.Course_Name}" (${course.Course_ID})?\n\nThis will remove this course entry from the list.`,
+        function(comment) {
+            // Remove from courses array
+            courses.splice(index, 1);
+            
+            // Check if there are any other courses with the same Course_ID (trimmed comparison)
+            const otherCoursesWithSameId = courses.some(c => String(c.Course_ID || '').trim() === courseId);
+            
+            // Only remove assignments and schedule if no other courses have this ID
+            if (!otherCoursesWithSameId) {
+                // Remove from assignments
+                delete assignments[courseId];
+                
+                // Remove from schedule
+                for (const eventId in schedule) {
+                    if (schedule[eventId][courseId]) {
+                        delete schedule[eventId][courseId];
+                    }
+                }
             }
+            
+            // Log the deletion with comment
+            const notes = `Course "${course.Course_Name}" (${courseId}) removed from courses list`;
+            logUpload('COURSE_DELETE', courseId, 0, 'Deleted', notes, comment);
+            
+            // Update all views
+            renderCoursesTable();
+            renderCoursesTableGrid();
+            renderSwimlanesGrid();
+            updateReportsGrid();
+            saveAll();
         }
-    }
-    
-    // Log the deletion
-    logUpload('COURSE_DELETE', courseId, 0, 'Deleted', `Course "${course.Course_Name}" (${courseId}) removed from courses list`);
-    
-    // Update all views
+    );
+}
     renderCoursesTable();
     renderCoursesTableGrid();
     renderSwimlanesGrid();

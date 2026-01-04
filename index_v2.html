@@ -449,6 +449,41 @@
             margin-bottom: 30px;
         }
 
+        /* Action Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-dialog {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-dialog h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .modal-dialog p {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+
         .auth-input {
             width: 100%;
             padding: 12px;
@@ -1039,6 +1074,22 @@
             
             <button class="auth-btn" onclick="handleLogin()">Sign In</button>
             <button class="auth-btn secondary" onclick="handleSignUp()">Create Account</button>
+        </div>
+    </div>
+
+    <!-- Action Confirmation Modal -->
+    <div id="actionModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <h3 id="actionModalTitle">Confirm Action</h3>
+            <p id="actionModalMessage"></p>
+            <div style="margin: 15px 0;">
+                <label for="actionComment" style="display: block; margin-bottom: 5px; font-weight: bold;">Add a note (optional):</label>
+                <textarea id="actionComment" class="auth-input" rows="3" placeholder="Explain why you're making this change..." style="resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="auth-btn secondary" onclick="closeActionModal()">Cancel</button>
+                <button class="auth-btn" id="actionModalConfirm">Confirm</button>
+            </div>
         </div>
     </div>
 
