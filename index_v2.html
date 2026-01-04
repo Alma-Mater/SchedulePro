@@ -1016,8 +1016,8 @@
     </style>
 </head>
 <body>
-    <!-- Auth Modal -->
-    <div id="authOverlay" class="auth-overlay active">
+    <!-- Auth Modal - DISABLED -->
+    <div id="authOverlay" class="auth-overlay" style="display: none;">
         <div class="auth-modal">
             <h2>🔐 Welcome to SchedulePro</h2>
             <p id="authMessage">Sign in to access your schedules</p>
@@ -1039,8 +1039,8 @@
             <h1>📅 SchedulePro</h1>
             <p>Easy-to-Use Course Scheduling for Event Planners</p>
             <div class="user-info" id="userInfo" style="display: none;">
-                <span id="userEmail"></span>
-                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+                <span id="userEmail">Public Access</span>
+                <button class="logout-btn" onclick="handleLogout()" style="display: none;">Logout</button>
             </div>
         </div>
 
@@ -1401,19 +1401,15 @@
         // Make supabaseClient available to scheduler_v2.js
         window.supabaseClient = supabaseClient;
 
-        // Check auth state on load
+        // Check auth state on load - DISABLED, direct access
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                showApp();
-                // Initialize Supabase in scheduler and load data
-                if (typeof initSupabase === 'function') {
-                    initSupabase();
-                    await loadRoundData();
-                }
-            } else {
-                showAuthModal();
+            // Skip auth, load app directly
+            currentUser = { email: 'public' };
+            showApp();
+            // Initialize Supabase in scheduler and load data
+            if (typeof initSupabase === 'function') {
+                initSupabase();
+                await loadRoundData();
             }
         }
 
