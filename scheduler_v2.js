@@ -60,9 +60,10 @@ function showActionModal(title, message, confirmCallback) {
     const confirmBtn = document.getElementById('actionModalConfirm');
     confirmBtn.onclick = function() {
         const comment = commentElement.value.trim();
+        const callback = actionModalCallback; // Store callback before closing
         closeActionModal();
-        if (actionModalCallback) {
-            actionModalCallback(comment);
+        if (callback) {
+            callback(comment);
         }
     };
 }
