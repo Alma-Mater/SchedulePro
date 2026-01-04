@@ -24,17 +24,42 @@ let actionModalCallback = null;
 
 // Show action confirmation modal
 function showActionModal(title, message, confirmCallback) {
-    document.getElementById('actionModalTitle').textContent = title;
-    document.getElementById('actionModalMessage').textContent = message;
-    document.getElementById('actionComment').value = '';
-    document.getElementById('actionModal').style.display = 'flex';
+    console.log('showActionModal called:', title);
+    const modalElement = document.getElementById('actionModal');
+    const titleElement = document.getElementById('actionModalTitle');
+    const messageElement = document.getElementById('actionModalMessage');
+    const commentElement = document.getElementById('actionComment');
+    
+    console.log('Modal elements:', {
+        modal: modalElement,
+        title: titleElement,
+        message: messageElement,
+        comment: commentElement
+    });
+    
+    if (!modalElement || !titleElement || !messageElement || !commentElement) {
+        console.error('Modal elements not found!');
+        alert('Error: Modal not found. Using fallback confirmation.');
+        if (confirm(message.replace(/<br>/g, '\n'))) {
+            confirmCallback('');
+        }
+        return;
+    }
+    
+    titleElement.textContent = title;
+    // Convert <br> tags for HTML display
+    messageElement.innerHTML = message;
+    commentElement.value = '';
+    modalElement.style.display = 'flex';
+    
+    console.log('Modal should now be visible');
     
     actionModalCallback = confirmCallback;
     
     // Set up confirm button click handler
     const confirmBtn = document.getElementById('actionModalConfirm');
     confirmBtn.onclick = function() {
-        const comment = document.getElementById('actionComment').value.trim();
+        const comment = commentElement.value.trim();
         closeActionModal();
         if (actionModalCallback) {
             actionModalCallback(comment);
@@ -46,6 +71,14 @@ function showActionModal(title, message, confirmCallback) {
 function closeActionModal() {
     document.getElementById('actionModal').style.display = 'none';
     actionModalCallback = null;
+}
+
+// Show quick comment modal after an automatic action (like drag-drop)
+function promptForComment(title, message, callback) {
+    const comment = prompt(`${title}\n\n${message}\n\nAdd an optional note about this change:`);
+    if (callback) {
+        callback(comment || '');
+    }
 }
 
 // Initialize Supabase reference from global
@@ -691,7 +724,7 @@ function getDateRange(eventId, dayNumbers) {
 }
 
 // Log a change action
-function logChange(action, courseId, eventId, newDays, oldDays = null, notes = '') {
+function logChange(action, courseId, eventId, newDays, oldDays = null, notes = '', userComment = '') {
     const course = courses.find(c => c.Course_ID === courseId);
     if (!course) return;
     
@@ -709,7 +742,7 @@ function logChange(action, courseId, eventId, newDays, oldDays = null, notes = '
         lastDay: newDates.lastDay,
         oldFirstDay: oldDates.firstDay,
         oldLastDay: oldDates.lastDay,
-        notes: notes,
+        notes: userComment ? `User: ${userComment}${notes ? ' | ' : ''}${notes}` : notes,
         csiTicket: ''
     };
     
@@ -2435,8 +2468,17 @@ function handleTimelineDrop(e) {
             roomNumber: roomNumber
         };
         
-        // Log the change
-        logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays);
+        // Prompt for comment and log the change
+        const courseObj = courses.find(c => c.Course_ID === draggedBlock.courseId);
+        const eventObj = events.find(e => e.Event_ID === draggedBlock.eventId);
+        promptForComment(
+            action === 'ADD' ? 'Course Scheduled' : 'Course Moved',
+            `"${courseObj?.Course_Name || draggedBlock.courseId}" in "${eventObj?.Event || draggedBlock.eventId}" - Days ${courseDays[0]}-${courseDays[courseDays.length - 1]}, Room ${roomNumber}`,
+            function(comment) {
+                logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays, '', comment);
+                saveLogs();
+            }
+        );
         
         // Re-render this swimlane
         renderSwimlanes();
@@ -2514,34 +2556,41 @@ function updateRoomAssignment(eventId, courseId, roomName) {
 
 // Remove course from event
 function removeCourseFromEvent(courseId, eventId) {
-    // Get old days before removing
+    const course = courses.find(c => c.Course_ID === courseId);
+    const event = events.find(e => e.Event_ID === eventId);
     const oldDays = schedule[eventId]?.[courseId]?.days || null;
     
-    // Remove from assignments
-    if (assignments[courseId]) {
-        assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
-    }
-    
-    // Remove from schedule
-    if (schedule[eventId]) {
-        delete schedule[eventId][courseId];
-    }
-    
-    // Log the removal
-    logChange('REMOVE', courseId, eventId, null, oldDays);
-    
-    // Update grid checkbox
-    const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
-    if (checkbox) {
-        checkbox.checked = false;
-    }
-    
-    // Re-render
-    renderSwimlanes();
-    updateStats();
-    updateConfigureDaysButton();
-    saveLogs();
-    triggerAutoSave();
+    showActionModal(
+        'Remove Course from Event',
+        `Remove "${course?.Course_Name || courseId}" from "${event?.Event || eventId}"?`,
+        function(comment) {
+            // Remove from assignments
+            if (assignments[courseId]) {
+                assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
+            }
+            
+            // Remove from schedule
+            if (schedule[eventId]) {
+                delete schedule[eventId][courseId];
+            }
+            
+            // Log the removal with comment
+            logChange('REMOVE', courseId, eventId, null, oldDays, '', comment);
+            
+            // Update grid checkbox
+            const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            // Re-render
+            renderSwimlanes();
+            updateStats();
+            updateConfigureDaysButton();
+            saveLogs();
+            triggerAutoSave();
+        }
+    );
 }
 
 // Edit room count for an event
@@ -4203,7 +4252,7 @@ function renderCoursesTable() {
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
                 <td class="editable-cell" data-index="${originalIndex}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
-                <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
+                <td><button class="btn btn-small btn-warning" onclick="alert('Delete button clicked for index ' + ${originalIndex}); deleteCourse(${originalIndex})" title="Delete this course">🗑️</button></td>
             </tr>`;
         });
         
@@ -4486,13 +4535,20 @@ function mergeDuplicates(courseId) {
 
 // Delete course
 function deleteCourse(index) {
+    console.log('deleteCourse called with index:', index);
     const course = courses[index];
+    if (!course) {
+        console.error('Course not found at index:', index);
+        return;
+    }
     const courseId = String(course.Course_ID || '').trim();
     
+    console.log('Calling showActionModal...');
     showActionModal(
         'Delete Course',
-        `Are you sure you want to delete "${course.Course_Name}" (${course.Course_ID})?\n\nThis will remove this course entry from the list.`,
+        `Are you sure you want to delete "${course.Course_Name}" (${course.Course_ID})?<br><br>This will remove this course entry from the list.`,
         function(comment) {
+            console.log('Delete confirmed with comment:', comment);
             // Remove from courses array
             courses.splice(index, 1);
             
@@ -4524,17 +4580,6 @@ function deleteCourse(index) {
             saveAll();
         }
     );
-}
-    renderCoursesTable();
-    renderCoursesTableGrid();
-    renderSwimlanesGrid();
-    updateReportsGrid();
-    renderAssignmentGrid();
-    renderSwimlanesGrid();
-    updateStats();
-    
-    // Save changes
-    triggerAutoSave();
 }
 
 function toggleFinances() {
@@ -6111,8 +6156,17 @@ function handleTimelineDropGrid(e) {
             roomNumber: roomNumber
         };
         
-        // Log the change
-        logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays);
+        // Prompt for comment and log the change
+        const courseObj = courses.find(c => c.Course_ID === draggedBlock.courseId);
+        const eventObj = events.find(e => e.Event_ID === draggedBlock.eventId);
+        promptForComment(
+            action === 'ADD' ? 'Course Scheduled' : 'Course Moved',
+            `"${courseObj?.Course_Name || draggedBlock.courseId}" in "${eventObj?.Event || draggedBlock.eventId}" - Days ${courseDays[0]}-${courseDays[courseDays.length - 1]}, Room ${roomNumber}`,
+            function(comment) {
+                logChange(action, draggedBlock.courseId, draggedBlock.eventId, courseDays, oldDays, '', comment);
+                saveLogs();
+            }
+        );
         
         // Re-render
         renderSwimlanesGrid();
@@ -6195,28 +6249,36 @@ function removeCourseFromEventGrid(courseId, eventId) {
         return;
     }
     
+    const course = courses.find(c => c.Course_ID === courseId);
+    const event = events.find(e => e.Event_ID === eventId);
     const oldDays = schedule[eventId]?.[courseId]?.days || null;
     
-    if (assignments[courseId]) {
-        assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
-    }
-    
-    if (schedule[eventId]) {
-        delete schedule[eventId][courseId];
-    }
-    
-    logChange('REMOVE', courseId, eventId, null, oldDays);
-    
-    const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
-    if (checkbox) {
-        checkbox.checked = false;
-    }
-    
-    renderSwimlanesGrid();
-    updateStats();
-    updateConfigureDaysButton();
-    saveLogs();
-    triggerAutoSave();
+    showActionModal(
+        'Remove Course from Event',
+        `Remove "${course?.Course_Name || courseId}" from "${event?.Event || eventId}"?`,
+        function(comment) {
+            if (assignments[courseId]) {
+                assignments[courseId] = assignments[courseId].filter(id => id !== eventId);
+            }
+            
+            if (schedule[eventId]) {
+                delete schedule[eventId][courseId];
+            }
+            
+            logChange('REMOVE', courseId, eventId, null, oldDays, '', comment);
+            
+            const checkbox = document.querySelector(`input[data-course-id="${courseId}"][data-event-id="${eventId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            renderSwimlanesGrid();
+            updateStats();
+            updateConfigureDaysButton();
+            saveLogs();
+            triggerAutoSave();
+        }
+    );
 }
 
 // Toggle event swimlane in grid view
