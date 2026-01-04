@@ -29,9 +29,73 @@ function initSupabase() {
 let saveTimeout = null;
 function triggerAutoSave() {
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        triggerAutoSave();
+    saveTimeout = setTimeout(async () => {
+        if (supabaseDb) {
+            await saveRoundData();
+        }
     }, 2000); // Save 2 seconds after last change
+}
+
+// Save all data to Supabase
+async function saveRoundData() {
+    if (!supabaseDb) {
+        console.log('Supabase not initialized, skipping save');
+        return;
+    }
+    
+    try {
+        console.log('Auto-saving to Supabase...');
+        
+        // Save courses (delete all and re-insert)
+        await supabaseDb.from('courses').delete().neq('id', 0);
+        if (courses.length > 0) {
+            const coursesData = courses.map(c => ({
+                course_id: c.Course_ID,
+                course_name: c.Course_Name,
+                instructor: c.Instructor,
+                duration_days: c.Duration_Days,
+                topic: c.Topic || null
+            }));
+            const { error: coursesError } = await supabaseDb.from('courses').insert(coursesData);
+            if (coursesError) console.error('Error saving courses:', coursesError);
+        }
+        
+        // Save schedule (delete all and re-insert)
+        await supabaseDb.from('schedule').delete().neq('id', 0);
+        const scheduleData = [];
+        for (const eventId in schedule) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                scheduleData.push({
+                    event_id: eventId,
+                    course_id: courseId,
+                    start_day: placement.startDay || null,
+                    days: placement.days ? placement.days.join(',') : null,
+                    room_number: placement.roomNumber || null,
+                    is_draft: placement.isDraft || false,
+                    updated_at: new Date().toISOString()
+                });
+            }
+        }
+        if (scheduleData.length > 0) {
+            const { error: scheduleError } = await supabaseDb.from('schedule').insert(scheduleData);
+            if (scheduleError) console.error('Error saving schedule:', scheduleError);
+        }
+        
+        // Update room counts in events table (update each event)
+        for (const eventId in eventRooms) {
+            const { error: roomError } = await supabaseDb
+                .from('events')
+                .update({ room_count: eventRooms[eventId] })
+                .eq('event_id', eventId);
+            
+            if (roomError) console.error(`Error updating room count for ${eventId}:`, roomError);
+        }
+        
+        console.log('✓ Auto-save complete');
+    } catch (error) {
+        console.error('Auto-save error:', error);
+    }
 }
 
 // Three-button dialog helper
