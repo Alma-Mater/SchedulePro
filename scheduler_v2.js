@@ -16,6 +16,9 @@ let rooms = {}; // DEPRECATED - now using roomNumber in schedule
 let draggedBlock = null;
 let currentTimeline = null;
 
+// Supabase load guard: avoid destructive saves if initial load failed
+let hasLoadedRoundDataFromSupabase = false;
+
 // Initialize Supabase reference from global
 function initSupabase() {
     if (typeof window.supabaseClient !== 'undefined') {
@@ -30,8 +33,10 @@ let saveTimeout = null;
 function triggerAutoSave() {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
-        if (supabaseDb) {
+        if (supabaseDb && hasLoadedRoundDataFromSupabase) {
             await saveRoundData();
+        } else if (supabaseDb && !hasLoadedRoundDataFromSupabase) {
+            console.warn('⚠ Auto-save skipped: round data not loaded from Supabase yet');
         }
     }, 2000); // Save 2 seconds after last change
 }
@@ -45,6 +50,86 @@ async function saveRoundData() {
     
     try {
         console.log('💾 Saving to Supabase...');
+        
+        // Save events
+        // IMPORTANT: avoid delete-then-insert; if insert fails (schema/RLS), deletes would wipe the table.
+        if (events.length > 0) {
+            const eventsData = events.map(e => ({
+                event_id: e.Event_ID,
+                event_name: e.Event_Name || e.Event,
+                location: e.Location || null,
+                room_count: eventRooms[e.Event_ID] || e.Room_Count || 1,
+                total_days: e.Total_Days || null,
+                hotel_location: e.Hotel_Location || null,
+                earlybird_end_date: e.EarlyBird_End_Date || null,
+                notes: e.Notes || null
+            }));
+            const { error: eventsUpsertError } = await supabaseDb
+                .from('events')
+                .upsert(eventsData, { onConflict: 'event_id' });
+            if (eventsUpsertError) {
+                console.warn('⚠ Events upsert failed; falling back to insert without delete:', eventsUpsertError);
+                const { error: eventsInsertError } = await supabaseDb.from('events').insert(eventsData);
+                if (eventsInsertError) {
+                    console.error('❌ Error saving events:', eventsInsertError);
+                    return;
+                }
+            }
+            console.log(`✓ Saved ${events.length} events`);
+        } else {
+            console.warn('⚠ Skipping events save: events[] is empty');
+        }
+        
+        // Save event_days
+        // IMPORTANT: avoid delete-then-insert for the same reason as events.
+        if (eventDays.length > 0) {
+            const eventDaysData = eventDays.map(d => ({
+                event_id: d.Event_ID,
+                day_number: d.Day_Number,
+                day_date: d.Day_Date
+            }));
+            const { error: eventDaysUpsertError } = await supabaseDb
+                .from('event_days')
+                .upsert(eventDaysData, { onConflict: 'event_id,day_number' });
+            if (eventDaysUpsertError) {
+                console.warn('⚠ event_days upsert failed; falling back to insert without delete:', eventDaysUpsertError);
+                const { error: eventDaysInsertError } = await supabaseDb.from('event_days').insert(eventDaysData);
+                if (eventDaysInsertError) {
+                    console.error('❌ Error saving event_days:', eventDaysInsertError);
+                    return;
+                }
+            }
+            console.log(`✓ Saved ${eventDays.length} event days`);
+        } else {
+            console.warn('⚠ Skipping event_days save: eventDays[] is empty');
+        }
+        
+        // Save instructor_unavailability (raw date ranges from Excel)
+        // IMPORTANT: avoid delete-then-insert.
+        if (instructorUnavailable.length > 0) {
+            const instructorData = instructorUnavailable.map(u => ({
+                instructor: u.Instructor,
+                // If your table still has event_id/unavailable_days, keep them nullable.
+                event_id: u.Event_ID || null,
+                unavailable_days: u.Unavailable_Days || null,
+                unavailable_start: u.Unavailable_Start || null,
+                unavailable_end: u.Unavailable_End || null
+            }));
+            const { error: instructorUpsertError } = await supabaseDb
+                .from('instructor_unavailability')
+                .upsert(instructorData, { onConflict: 'instructor,unavailable_start,unavailable_end' });
+            if (instructorUpsertError) {
+                console.warn('⚠ instructor_unavailability upsert failed; falling back to insert without delete:', instructorUpsertError);
+                const { error: instructorInsertError } = await supabaseDb.from('instructor_unavailability').insert(instructorData);
+                if (instructorInsertError) {
+                    console.error('❌ Error saving instructor_unavailability:', instructorInsertError);
+                    return;
+                }
+            }
+            console.log(`✓ Saved ${instructorUnavailable.length} instructor unavailability entries`);
+        } else {
+            console.warn('⚠ Skipping instructor_unavailability save: instructorUnavailable[] is empty');
+        }
         
         // Save courses (delete all and re-insert)
         await supabaseDb.from('courses').delete().neq('id', 0);
@@ -88,16 +173,6 @@ async function saveRoundData() {
                 return;
             }
             console.log(`✓ Saved ${scheduleData.length} schedule entries`);
-        }
-        
-        // Update room counts in events table (update each event)
-        for (const eventId in eventRooms) {
-            const { error: roomError } = await supabaseDb
-                .from('events')
-                .update({ room_count: eventRooms[eventId] })
-                .eq('event_id', eventId);
-            
-            if (roomError) console.error(`❌ Error updating room count for ${eventId}:`, roomError);
         }
         
         console.log('✅ All data saved to Supabase successfully!');
@@ -344,16 +419,19 @@ async function autoSaveRound() {
     }
 
     try {
-        // Save events
-        await supabaseDb.from('events').delete().neq('id', 0); // Clear existing
+        // Save events (safe)
         if (events.length > 0) {
             const eventsData = events.map(e => ({
                 event_id: e.Event_ID,
                 event_name: e.Event,
                 location: e.Location || null,
-                room_count: e.Room_Count || null
+                room_count: e.Room_Count || null,
+                total_days: e.Total_Days || null,
+                hotel_location: e.Hotel_Location || null,
+                earlybird_end_date: e.EarlyBird_End_Date || null,
+                notes: e.Notes || null
             }));
-            await supabaseDb.from('events').insert(eventsData);
+            await supabaseDb.from('events').upsert(eventsData, { onConflict: 'event_id' });
         }
 
         // Save courses
@@ -369,26 +447,26 @@ async function autoSaveRound() {
             await supabaseDb.from('courses').insert(coursesData);
         }
 
-        // Save event days
-        await supabaseDb.from('event_days').delete().neq('id', 0);
+        // Save event days (safe)
         if (eventDays.length > 0) {
             const daysData = eventDays.map(d => ({
                 event_id: d.Event_ID,
                 day_number: d.Day_Number,
                 day_date: d.Day_Date
             }));
-            await supabaseDb.from('event_days').insert(daysData);
+            await supabaseDb.from('event_days').upsert(daysData, { onConflict: 'event_id,day_number' });
         }
 
-        // Save instructor unavailability
-        await supabaseDb.from('instructor_unavailability').delete().neq('id', 0);
+        // Save instructor unavailability (safe)
         if (instructorUnavailable.length > 0) {
             const unavailData = instructorUnavailable.map(u => ({
                 instructor: u.Instructor,
-                event_id: u.Event_ID,
-                unavailable_days: u.Unavailable_Days || null
+                event_id: u.Event_ID || null,
+                unavailable_days: u.Unavailable_Days || null,
+                unavailable_start: u.Unavailable_Start || null,
+                unavailable_end: u.Unavailable_End || null
             }));
-            await supabaseDb.from('instructor_unavailability').insert(unavailData);
+            await supabaseDb.from('instructor_unavailability').upsert(unavailData, { onConflict: 'instructor,unavailable_start,unavailable_end' });
         }
 
         // Save schedule
@@ -430,11 +508,27 @@ async function loadRoundData() {
         // Load events
         const { data: eventsData, error: eventsError } = await supabaseDb.from('events').select('*');
         if (eventsError) throw eventsError;
+        
+        // Load event days
+        const { data: daysData, error: daysError } = await supabaseDb.from('event_days').select('*');
+        if (daysError) throw daysError;
+        eventDays = daysData.map(d => ({
+            Event_ID: d.event_id,
+            Day_Number: d.day_number,
+            Day_Date: d.day_date
+        }));
+        
+        // Build events with all Excel columns
         events = eventsData.map(e => ({
             Event_ID: e.event_id,
             Event: e.event_name,
             Location: e.location,
-            Room_Count: e.room_count
+            Room_Count: e.room_count,
+            Total_Days: e.total_days,
+            Hotel_Location: e.hotel_location,
+            EarlyBird_End_Date: e.earlybird_end_date,
+            Notes: e.notes,
+            isLocked: false
         }));
 
         // Load courses
@@ -448,22 +542,13 @@ async function loadRoundData() {
             Topic: c.topic
         }));
 
-        // Load event days
-        const { data: daysData, error: daysError } = await supabaseDb.from('event_days').select('*');
-        if (daysError) throw daysError;
-        eventDays = daysData.map(d => ({
-            Event_ID: d.event_id,
-            Day_Number: d.day_number,
-            Day_Date: d.day_date
-        }));
-
         // Load instructor unavailability
         const { data: unavailData, error: unavailError } = await supabaseDb.from('instructor_unavailability').select('*');
         if (unavailError) throw unavailError;
         instructorUnavailable = unavailData.map(u => ({
             Instructor: u.instructor,
-            Event_ID: u.event_id,
-            Unavailable_Days: u.unavailable_days
+            Unavailable_Start: u.unavailable_start,
+            Unavailable_End: u.unavailable_end
         }));
 
         // Load schedule
@@ -485,24 +570,31 @@ async function loadRoundData() {
 
         // Rebuild derived data
         rebuildAssignments();
-        rebuildUnavailabilityMap();
+        calculateUnavailabilityMap(); // Convert date ranges to day-based format
         calculateEventRooms();
 
-        // Re-render if data was loaded
-        if (courses.length > 0 && events.length > 0) {
+        hasLoadedRoundDataFromSupabase = true;
+
+        // Re-render whatever can render.
+        // NOTE: previously this required BOTH courses and events; if events failed to load, the UI looked blank
+        // even though courses/schedule existed.
+        if (courses.length > 0) {
+            renderCoursesTableGrid();
+        }
+        if (events.length > 0) {
             renderAssignmentGrid();
             renderSwimlanes();
             renderSwimlanesGrid(); // Render Room Grid view
             updateReportsGrid(); // Update Room Grid reports
-            renderCoursesTableGrid(); // Update courses table
-            updateStats();
-            updateConfigureDaysButton();
         }
+        updateStats();
+        updateConfigureDaysButton();
 
         console.log('Loaded data from Supabase');
         return true;
     } catch (error) {
         console.error('Error loading from Supabase:', error);
+        hasLoadedRoundDataFromSupabase = false;
         return false;
     }
 }
