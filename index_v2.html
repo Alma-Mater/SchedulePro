@@ -1131,10 +1131,10 @@
                     <div class="collapsible-header" onclick="toggleSection('step2Content')">
                         <div class="section-title">Step 2: Assign Courses to Events</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-success btn-small" onclick="goToConfigureDays()" id="configureDaysBtn">
+                            <button class="btn btn-success btn-small" onclick="event.stopPropagation(); goToConfigureDays()" id="configureDaysBtn">
                                 ⚙️ Configure Days
                             </button>
-                            <button class="btn btn-info btn-small" onclick="goToRoomGridView()" id="roomGridBtn">
+                            <button class="btn btn-info btn-small" onclick="(function(e){ e.stopPropagation(); goToRoomGridView(); })(event)" id="roomGridBtn">
                                 🏢 Room Grid View
                             </button>
                             <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>

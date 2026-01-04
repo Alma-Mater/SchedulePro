@@ -2405,7 +2405,8 @@ function editRoomCount(eventId, currentCount) {
     
     // Log the change
     const event = events.find(e => e.Event_ID === eventId);
-    logChange('CHANGE', 'ROOMS', eventId, [`Room count changed from ${currentCount} to ${numRooms} for ${event?.Event || eventId}`], null);
+    const eventName = event ? event.Event : eventId;
+    logUpload('ROOM_COUNT', eventName, numRooms, 'Changed', `Room count changed from ${currentCount} to ${numRooms} for event "${eventName}"`);
     
     // Re-render the appropriate view
     const roomGridView = document.getElementById('roomGridView');
@@ -2432,7 +2433,8 @@ function addRoom(eventId) {
     
     // Log the change
     const event = events.find(e => e.Event_ID === eventId);
-    logChange('ADD', 'ROOM', eventId, [`Room ${currentRooms + 1} added to ${event?.Event || eventId}`], null);
+    const eventName = event ? event.Event : eventId;
+    logUpload('ROOM_ADD', eventName, currentRooms + 1, 'Added', `Room ${currentRooms + 1} added to event "${eventName}"`);
     
     // Re-render
     renderSwimlanes();
@@ -2479,7 +2481,8 @@ function changeCourseRoom(eventId, courseId, newRoomNumber) {
     
     // Log the change
     const course = courses.find(c => c.Course_ID === courseId);
-    logChange('CHANGE', courseId, eventId, [`Moved from Room ${oldRoom} to Room ${newRoomNumber}`], [`Room ${oldRoom}`]);
+    const courseName = course ? course.Course_Name : courseId;
+    logUpload('COURSE_ROOM_MOVE', courseId, 0, 'Moved', `"${courseName}" moved from Room ${oldRoom} to Room ${newRoomNumber} in event`);
     
     // Re-render to show in new room lane
     renderSwimlanes();
@@ -2527,7 +2530,8 @@ function removeRoom(eventId, roomNumber) {
         
         // Log the change
         const event = events.find(e => e.Event_ID === eventId);
-        logChange('REMOVE', 'ROOM', eventId, null, [`Room ${roomNumber} removed from ${event?.Event || eventId}`]);
+        const eventName = event ? event.Event : eventId;
+        logUpload('ROOM_REMOVE', eventName, currentRooms - 1, 'Removed', `Room ${roomNumber} removed from event "${eventName}"`);
         
         // Re-render
         renderSwimlanes();
@@ -4083,8 +4087,17 @@ function editCell(cell) {
         const newValue = this.value;
         cell.textContent = newValue;
         
+        const course = courses[index];
+        const oldValue = originalValue;
+        
         // Update course data
         courses[index][field] = field === 'Duration_Days' ? parseFloat(newValue) : newValue;
+        
+        // Log the change
+        if (oldValue !== newValue) {
+            const fieldName = field.replace(/_/g, ' ');
+            logUpload('COURSE_EDIT', course.Course_ID, 0, 'Modified', `${fieldName}: "${oldValue}" → "${newValue}"`);
+        }
         
         // Re-render to check for duplicates
         renderCoursesTable();
@@ -4159,6 +4172,10 @@ function mergeDuplicates(courseId) {
         courses.splice(idx, 1);
     });
     
+    // Log the merge
+    const keptCourse = courses.find(c => String(c.Course_ID || '').trim() === trimmedId);
+    logUpload('COURSE_MERGE', trimmedId, indicesToDelete.length, 'Merged', `Kept "${keptCourse?.Course_Name || 'Unknown'}" and removed ${indicesToDelete.length} duplicate(s) with Course ID "${trimmedId}"`);
+    
     // Update all views
     renderCoursesTable();
     renderCoursesTableGrid();
@@ -4195,6 +4212,9 @@ function deleteCourse(index) {
             }
         }
     }
+    
+    // Log the deletion
+    logUpload('COURSE_DELETE', courseId, 0, 'Deleted', `Course "${course.Course_Name}" (${courseId}) removed from courses list`);
     
     // Update all views
     renderCoursesTable();
@@ -5470,7 +5490,8 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
         if (placement.roomNumber === roomNumber) {
             schedule[eventId][courseId].roomNumber = null;
             const course = courses.find(c => c.Course_ID === courseId);
-            logChange('Room Selection', courseId, eventId, 'None (deselected)', null);
+            const courseName = course ? course.Course_Name : courseId;
+            logUpload('ROOM_SELECT', courseName, 0, 'Deselected', `Course "${courseName}" deselected from any room`);
             renderSwimlanesGrid();
             saveLogs();
             triggerAutoSave();
@@ -5520,7 +5541,9 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
                                 const overlap = placement.days.some(day => otherPlacement.days.includes(day));
                                 if (overlap || otherCourseId === courseId) {
                                     schedule[eventId][otherCourseId].isDraft = true;
-                                    logChange('Draft Status', otherCourseId, eventId, 'Marked as Draft', null, 'Room conflict');
+                                    const otherCourse = courses.find(c => c.Course_ID === otherCourseId);
+                                    const otherCourseName = otherCourse ? otherCourse.Course_Name : otherCourseId;
+                                    logUpload('DRAFT_STATUS', otherCourseName, 0, 'Draft', `Marked as draft due to room conflict`);
                                 }
                             }
                         }
@@ -6067,10 +6090,15 @@ function buildAllOpenBookingsContent() {
 
 // Toggle event lock status
 function toggleEventLock(eventId) {
+    const event = events.find(e => e.Event_ID === eventId);
+    const eventName = event ? event.Event : eventId;
+    
     if (lockedEvents.has(eventId)) {
         lockedEvents.delete(eventId);
+        logUpload('EVENT', eventName, 0, 'Unlocked', `Event "${eventName}" unlocked for editing`);
     } else {
         lockedEvents.add(eventId);
+        logUpload('EVENT', eventName, 0, 'Locked', `Event "${eventName}" locked to prevent changes`);
     }
     
     triggerAutoSave();
