@@ -1,0 +1,3 @@
+// Supabase Configuration
+const SUPABASE_URL = 'https://ejynlffmwiscbxrfaiyk.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeW5sZmZtd2lzY2J4cmZhaXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDQzMjU5ODUsImV4cCI6MjAxOTkwMTk4NX0.LYWTrec15ENk2DNBCcm8jg_aFn1yISk';
