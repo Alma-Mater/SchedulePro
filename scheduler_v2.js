@@ -3848,26 +3848,27 @@ function renderCoursesTable() {
     const duplicates = [];
     const nonDuplicates = [];
     
-    courses.forEach(course => {
+    courses.forEach((course, index) => {
         const courseId = String(course.Course_ID || '').trim();
+        const item = { course, index };
         if (courseIdCounts[courseId] > 1) {
-            duplicates.push(course);
+            duplicates.push(item);
         } else {
-            nonDuplicates.push(course);
+            nonDuplicates.push(item);
         }
     });
     
     // Sort duplicates by Course_ID (so same IDs are together)
     duplicates.sort((a, b) => {
-        const idA = String(a.Course_ID || '').trim().toLowerCase();
-        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        const idA = String(a.course.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.course.Course_ID || '').trim().toLowerCase();
         return idA.localeCompare(idB);
     });
     
     // Sort non-duplicates by Course_ID
     nonDuplicates.sort((a, b) => {
-        const idA = String(a.Course_ID || '').trim().toLowerCase();
-        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        const idA = String(a.course.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.course.Course_ID || '').trim().toLowerCase();
         return idA.localeCompare(idB);
     });
     
@@ -3877,10 +3878,11 @@ function renderCoursesTable() {
     
     // Render duplicates first
     if (duplicates.length > 0) {
-        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">⚠ Duplicate Course IDs detected</td></tr>';
+        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">Duplicate Course IDs detected</td></tr>';
         
-        duplicates.forEach(course => {
-            const originalIndex = courses.indexOf(course);
+        duplicates.forEach(item => {
+            const course = item.course;
+            const originalIndex = item.index;
             
             // Find where this course is scheduled
             const courseId = String(course.Course_ID || '').trim();
@@ -3917,8 +3919,9 @@ function renderCoursesTable() {
     }
     
     // Render non-duplicates
-    nonDuplicates.forEach(course => {
-        const originalIndex = courses.indexOf(course);
+    nonDuplicates.forEach(item => {
+        const course = item.course;
+        const originalIndex = item.index;
         html += `<tr>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
@@ -3963,26 +3966,27 @@ function renderCoursesTableGrid() {
     const duplicates = [];
     const nonDuplicates = [];
     
-    courses.forEach(course => {
+    courses.forEach((course, index) => {
         const courseId = String(course.Course_ID || '').trim();
+        const item = { course, index };
         if (courseIdCounts[courseId] > 1) {
-            duplicates.push(course);
+            duplicates.push(item);
         } else {
-            nonDuplicates.push(course);
+            nonDuplicates.push(item);
         }
     });
     
     // Sort duplicates by Course_ID (so same IDs are together)
     duplicates.sort((a, b) => {
-        const idA = String(a.Course_ID || '').trim().toLowerCase();
-        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        const idA = String(a.course.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.course.Course_ID || '').trim().toLowerCase();
         return idA.localeCompare(idB);
     });
     
     // Sort non-duplicates by Course_ID
     nonDuplicates.sort((a, b) => {
-        const idA = String(a.Course_ID || '').trim().toLowerCase();
-        const idB = String(b.Course_ID || '').trim().toLowerCase();
+        const idA = String(a.course.Course_ID || '').trim().toLowerCase();
+        const idB = String(b.course.Course_ID || '').trim().toLowerCase();
         return idA.localeCompare(idB);
     });
     
@@ -3992,10 +3996,11 @@ function renderCoursesTableGrid() {
     
     // Render duplicates first
     if (duplicates.length > 0) {
-        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">⚠ Duplicate Course IDs detected</td></tr>';
+        html += '<tr style="background: #fff4e6;"><td colspan="6" style="padding: 8px 10px; color: #856404;">Duplicate Course IDs detected</td></tr>';
         
-        duplicates.forEach(course => {
-            const originalIndex = courses.indexOf(course);
+        duplicates.forEach(item => {
+            const course = item.course;
+            const originalIndex = item.index;
             
             // Find where this course is scheduled
             const courseId = String(course.Course_ID || '').trim();
@@ -4032,8 +4037,9 @@ function renderCoursesTableGrid() {
     }
     
     // Render non-duplicates
-    nonDuplicates.forEach(course => {
-        const originalIndex = courses.indexOf(course);
+    nonDuplicates.forEach(item => {
+        const course = item.course;
+        const originalIndex = item.index;
         html += `<tr>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
             <td class="editable-cell" data-index="${originalIndex}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
@@ -4114,18 +4120,25 @@ function deleteCourse(index) {
     // Remove from courses array
     courses.splice(index, 1);
     
-    // Remove from assignments
-    delete assignments[courseId];
+    // Check if there are any other courses with the same Course_ID
+    const otherCoursesWithSameId = courses.some(c => c.Course_ID === courseId);
     
-    // Remove from schedule
-    for (const eventId in schedule) {
-        if (schedule[eventId][courseId]) {
-            delete schedule[eventId][courseId];
+    // Only remove assignments and schedule if no other courses have this ID
+    if (!otherCoursesWithSameId) {
+        // Remove from assignments
+        delete assignments[courseId];
+        
+        // Remove from schedule
+        for (const eventId in schedule) {
+            if (schedule[eventId][courseId]) {
+                delete schedule[eventId][courseId];
+            }
         }
     }
     
     // Update all views
     renderCoursesTable();
+    renderCoursesTableGrid();
     renderAssignmentGrid();
     renderSwimlanesGrid();
     updateStats();
