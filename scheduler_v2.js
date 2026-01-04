@@ -3892,7 +3892,7 @@ function renderCoursesTable() {
                 if (schedule[eventId] && schedule[eventId][courseId]) {
                     const courseSchedule = schedule[eventId][courseId];
                     const event = events.find(e => e.Event_ID === eventId);
-                    const eventName = event ? event.Event_Name : eventId;
+                    const eventName = event ? event.Event : eventId;
                     scheduledLocations.push(`${eventName} - Day ${courseSchedule.startDay}, Room ${courseSchedule.roomNumber}`);
                 }
             });
@@ -4007,7 +4007,7 @@ function renderCoursesTableGrid() {
                 if (schedule[eventId] && schedule[eventId][courseId]) {
                     const courseSchedule = schedule[eventId][courseId];
                     const event = events.find(e => e.Event_ID === eventId);
-                    const eventName = event ? event.Event_Name : eventId;
+                    const eventName = event ? event.Event : eventId;
                     scheduledLocations.push(`${eventName} - Day ${courseSchedule.startDay}, Room ${courseSchedule.roomNumber}`);
                 }
             });
