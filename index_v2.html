@@ -524,6 +524,40 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        /* Editable table cells */
+        .editable-cell {
+            cursor: text;
+            position: relative;
+            padding: 8px 10px;
+            min-width: 50px;
+        }
+
+        .editable-cell:hover {
+            background: #f8f9fa;
+        }
+
+        .editable-cell input {
+            width: 100%;
+            border: 2px solid #667eea;
+            padding: 6px;
+            font-size: inherit;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+
+        .duplicate-warning {
+            background: #fff3cd !important;
+            border-left: 3px solid #ffc107 !important;
+        }
+
+        .duplicate-warning::after {
+            content: '⚠️';
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
         .workload-bar {
             display: inline-block;
             height: 8px;
@@ -1170,6 +1204,19 @@
                     </div>
                 </div>
 
+                <!-- Courses Table Section -->
+                <div class="section">
+                    <div class="collapsible-header" onclick="toggleCoursesTable()">
+                        <div class="section-title no-margin">📚 Courses Table</div>
+                        <div id="coursesTableToggle">▶ Expand</div>
+                    </div>
+                    <div class="reports-content collapsed" id="coursesTableContent">
+                        <div class="report-card">
+                            <div id="coursesTableContainer"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Reports Section -->
                 <div class="section">
                     <div class="collapsible-header" onclick="toggleReports()">
@@ -1253,6 +1300,19 @@
                     </div>
                     <div class="alert alert-info">
                         <strong>Instructions:</strong> Drag each course block to the day slots where it should start. Select room by clicking the room number in the grid below each course.
+                    </div>
+                </div>
+
+                <!-- Courses Table Section -->
+                <div class="section">
+                    <div class="collapsible-header" onclick="toggleCoursesTableGrid()">
+                        <div class="section-title no-margin">📚 Courses Table</div>
+                        <div id="coursesTableToggleGrid">▶ Expand</div>
+                    </div>
+                    <div class="reports-content collapsed" id="coursesTableContentGrid">
+                        <div class="report-card">
+                            <div id="coursesTableContainerGrid"></div>
+                        </div>
                     </div>
                 </div>
 

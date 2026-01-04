@@ -3778,6 +3778,209 @@ function toggleConflictsGrid() {
     }
 }
 
+// Toggle courses table section
+function toggleCoursesTable() {
+    const content = document.getElementById('coursesTableContent');
+    const toggle = document.getElementById('coursesTableToggle');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        renderCoursesTable();
+    }
+}
+
+// Toggle courses table section for Room Grid view
+function toggleCoursesTableGrid() {
+    const content = document.getElementById('coursesTableContentGrid');
+    const toggle = document.getElementById('coursesTableToggleGrid');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        renderCoursesTableGrid();
+    }
+}
+
+// Render editable courses table
+function renderCoursesTable() {
+    const container = document.getElementById('coursesTableContainer');
+    if (!container) return;
+    
+    if (courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet. Upload an Excel file or CSV to get started.</p>';
+        return;
+    }
+    
+    // Find duplicates
+    const courseIdCounts = {};
+    courses.forEach(c => {
+        const id = c.Course_ID;
+        courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
+    });
+    
+    let html = '<table class="report-table"><thead><tr>';
+    html += '<th>Course ID</th><th>Course Name</th><th>Instructor</th><th>Duration (Days)</th><th>Topic</th><th>Actions</th>';
+    html += '</tr></thead><tbody>';
+    
+    courses.forEach((course, index) => {
+        const isDuplicate = courseIdCounts[course.Course_ID] > 1;
+        const rowClass = isDuplicate ? 'duplicate-warning' : '';
+        
+        html += `<tr class="${rowClass}">
+            <td class="editable-cell" data-index="${index}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${index})" title="Delete this course">🗑️</button></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    
+    // Show duplicate warning if any found
+    const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
+    if (duplicateCount > 0) {
+        html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow.
+        </div>` + html;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Render editable courses table for Room Grid view
+function renderCoursesTableGrid() {
+    const container = document.getElementById('coursesTableContainerGrid');
+    if (!container) return;
+    
+    if (courses.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No courses loaded yet. Upload an Excel file or CSV to get started.</p>';
+        return;
+    }
+    
+    // Find duplicates
+    const courseIdCounts = {};
+    courses.forEach(c => {
+        const id = c.Course_ID;
+        courseIdCounts[id] = (courseIdCounts[id] || 0) + 1;
+    });
+    
+    let html = '<table class="report-table"><thead><tr>';
+    html += '<th>Course ID</th><th>Course Name</th><th>Instructor</th><th>Duration (Days)</th><th>Topic</th><th>Actions</th>';
+    html += '</tr></thead><tbody>';
+    
+    courses.forEach((course, index) => {
+        const isDuplicate = courseIdCounts[course.Course_ID] > 1;
+        const rowClass = isDuplicate ? 'duplicate-warning' : '';
+        
+        html += `<tr class="${rowClass}">
+            <td class="editable-cell" data-index="${index}" data-field="Course_ID" onclick="editCell(this)">${course.Course_ID || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Course_Name" onclick="editCell(this)">${course.Course_Name || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Instructor" onclick="editCell(this)">${course.Instructor || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Duration_Days" onclick="editCell(this)">${course.Duration_Days || ''}</td>
+            <td class="editable-cell" data-index="${index}" data-field="Topic" onclick="editCell(this)">${course.Topic || ''}</td>
+            <td><button class="btn btn-small btn-warning" onclick="deleteCourse(${index})" title="Delete this course">🗑️</button></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    
+    // Show duplicate warning if any found
+    const duplicateCount = Object.values(courseIdCounts).filter(count => count > 1).length;
+    if (duplicateCount > 0) {
+        html = `<div style="background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+            <strong>⚠️ Warning:</strong> ${duplicateCount} duplicate Course ID(s) detected. Duplicate rows are highlighted in yellow.
+        </div>` + html;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Edit cell inline
+function editCell(cell) {
+    if (cell.querySelector('input')) return; // Already editing
+    
+    const originalValue = cell.textContent;
+    const index = parseInt(cell.dataset.index);
+    const field = cell.dataset.field;
+    
+    const input = document.createElement('input');
+    input.type = field === 'Duration_Days' ? 'number' : 'text';
+    input.value = originalValue;
+    input.step = field === 'Duration_Days' ? '0.5' : undefined;
+    
+    input.onblur = function() {
+        const newValue = this.value;
+        cell.textContent = newValue;
+        
+        // Update course data
+        courses[index][field] = field === 'Duration_Days' ? parseFloat(newValue) : newValue;
+        
+        // Re-render to check for duplicates
+        renderCoursesTable();
+        
+        // Update other views
+        renderAssignmentGrid();
+        renderSwimlanesGrid();
+        
+        // Save changes
+        triggerAutoSave();
+    };
+    
+    input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+            this.blur();
+        } else if (e.key === 'Escape') {
+            cell.textContent = originalValue;
+        }
+    };
+    
+    cell.textContent = '';
+    cell.appendChild(input);
+    input.focus();
+    input.select();
+}
+
+// Delete course
+function deleteCourse(index) {
+    const course = courses[index];
+    if (!confirm(`Delete course "${course.Course_Name}" (${course.Course_ID})?\n\nThis will also remove all assignments and schedules for this course.`)) {
+        return;
+    }
+    
+    const courseId = course.Course_ID;
+    
+    // Remove from courses array
+    courses.splice(index, 1);
+    
+    // Remove from assignments
+    delete assignments[courseId];
+    
+    // Remove from schedule
+    for (const eventId in schedule) {
+        if (schedule[eventId][courseId]) {
+            delete schedule[eventId][courseId];
+        }
+    }
+    
+    // Update all views
+    renderCoursesTable();
+    renderAssignmentGrid();
+    renderSwimlanesGrid();
+    updateStats();
+    
+    // Save changes
+    triggerAutoSave();
+}
+
 function toggleFinances() {
     // Check which view is active
     const isRoomGrid = document.getElementById('roomGridView').classList.contains('active');
