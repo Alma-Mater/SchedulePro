@@ -1,4 +1,7 @@
 // SchedulePro V2 - Grid-based scheduler with swimlane day configuration
+// Supabase client (initialized in HTML)
+let supabaseDb = null;
+
 // Data structures
 let courses = [];
 let events = [];
@@ -12,6 +15,24 @@ let schedule = {}; // { eventId: { courseId: { startDay, days: [], roomNumber: 1
 let rooms = {}; // DEPRECATED - now using roomNumber in schedule
 let draggedBlock = null;
 let currentTimeline = null;
+
+// Initialize Supabase reference from global
+function initSupabase() {
+    if (typeof window.supabaseClient !== 'undefined') {
+        supabaseDb = window.supabaseClient;
+    } else if (typeof supabaseClient !== 'undefined') {
+        supabaseDb = supabaseClient;
+    }
+}
+
+// Debounced auto-save (prevents too many saves)
+let saveTimeout = null;
+function triggerAutoSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        triggerAutoSave();
+    }, 2000); // Save 2 seconds after last change
+}
 
 // Three-button dialog helper
 function showThreeButtonDialog(message, button1Text, button2Text, button3Text) {
@@ -239,54 +260,207 @@ function clearUploadsAndErrors() {
     };
 }
 
-// Auto-save round data to localStorage
-function autoSaveRound() {
-    const roundData = {
-        courses,
-        events,
-        eventDays,
-        eventRooms,
-        lockedEvents: Array.from(lockedEvents),
-        instructorUnavailable,
-        unavailabilityMap,
-        assignments,
-        schedule,
-        rooms,
-        timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('schedulepro_autosave', JSON.stringify(roundData));
+// Auto-save round data to Supabase (replaces localStorage)
+async function autoSaveRound() {
+    if (!supabaseDb) {
+        console.warn('Supabase not initialized, skipping auto-save');
+        return;
+    }
+
+    try {
+        // Save events
+        await supabaseDb.from('events').delete().neq('id', 0); // Clear existing
+        if (events.length > 0) {
+            const eventsData = events.map(e => ({
+                event_id: e.Event_ID,
+                event_name: e.Event,
+                location: e.Location || null,
+                room_count: e.Room_Count || null
+            }));
+            await supabaseDb.from('events').insert(eventsData);
+        }
+
+        // Save courses
+        await supabaseDb.from('courses').delete().neq('id', 0);
+        if (courses.length > 0) {
+            const coursesData = courses.map(c => ({
+                course_id: c.Course_ID,
+                course_name: c.Course_Name,
+                instructor: c.Instructor,
+                duration_days: c.Duration_Days,
+                topic: c.Topic || null
+            }));
+            await supabaseDb.from('courses').insert(coursesData);
+        }
+
+        // Save event days
+        await supabaseDb.from('event_days').delete().neq('id', 0);
+        if (eventDays.length > 0) {
+            const daysData = eventDays.map(d => ({
+                event_id: d.Event_ID,
+                day_number: d.Day_Number,
+                day_date: d.Day_Date
+            }));
+            await supabaseDb.from('event_days').insert(daysData);
+        }
+
+        // Save instructor unavailability
+        await supabaseDb.from('instructor_unavailability').delete().neq('id', 0);
+        if (instructorUnavailable.length > 0) {
+            const unavailData = instructorUnavailable.map(u => ({
+                instructor: u.Instructor,
+                event_id: u.Event_ID,
+                unavailable_days: u.Unavailable_Days || null
+            }));
+            await supabaseDb.from('instructor_unavailability').insert(unavailData);
+        }
+
+        // Save schedule
+        await supabaseDb.from('schedule').delete().neq('id', 0);
+        const scheduleData = [];
+        for (const eventId in schedule) {
+            for (const courseId in schedule[eventId]) {
+                const placement = schedule[eventId][courseId];
+                scheduleData.push({
+                    event_id: eventId,
+                    course_id: courseId,
+                    start_day: placement.startDay || null,
+                    days: placement.days ? placement.days.join(',') : null,
+                    room_number: placement.roomNumber || null,
+                    is_draft: placement.isDraft || false,
+                    updated_at: new Date().toISOString()
+                });
+            }
+        }
+        if (scheduleData.length > 0) {
+            await supabaseDb.from('schedule').insert(scheduleData);
+        }
+
+        console.log('Auto-save to Supabase completed');
+    } catch (error) {
+        console.error('Error auto-saving to Supabase:', error);
+        alert('Failed to save data to cloud. Please check your connection.');
+    }
 }
 
-// Load round data from localStorage
-function loadRoundData() {
-    const saved = localStorage.getItem('schedulepro_autosave');
-    if (saved) {
-        try {
-            const data = JSON.parse(saved);
-            courses = data.courses || [];
-            events = data.events || [];
-            eventDays = data.eventDays || [];
-            eventRooms = data.eventRooms || {};
-            lockedEvents = new Set(data.lockedEvents || []);
-            instructorUnavailable = data.instructorUnavailable || [];
-            unavailabilityMap = data.unavailabilityMap || {};
-            assignments = data.assignments || {};
-            schedule = data.schedule || {};
-            rooms = data.rooms || {};
-            
-            // Re-render if data was loaded
-            if (courses.length > 0 || events.length > 0) {
-                renderAssignmentGrid();
-                renderSwimlanes();
-                updateStats();
-                updateConfigureDaysButton();
+// Load round data from Supabase
+async function loadRoundData() {
+    if (!supabaseDb) {
+        console.warn('Supabase not initialized');
+        return false;
+    }
+
+    try {
+        // Load events
+        const { data: eventsData, error: eventsError } = await supabaseDb.from('events').select('*');
+        if (eventsError) throw eventsError;
+        events = eventsData.map(e => ({
+            Event_ID: e.event_id,
+            Event: e.event_name,
+            Location: e.location,
+            Room_Count: e.room_count
+        }));
+
+        // Load courses
+        const { data: coursesData, error: coursesError } = await supabaseDb.from('courses').select('*');
+        if (coursesError) throw coursesError;
+        courses = coursesData.map(c => ({
+            Course_ID: c.course_id,
+            Course_Name: c.course_name,
+            Instructor: c.instructor,
+            Duration_Days: c.duration_days,
+            Topic: c.topic
+        }));
+
+        // Load event days
+        const { data: daysData, error: daysError } = await supabaseDb.from('event_days').select('*');
+        if (daysError) throw daysError;
+        eventDays = daysData.map(d => ({
+            Event_ID: d.event_id,
+            Day_Number: d.day_number,
+            Day_Date: d.day_date
+        }));
+
+        // Load instructor unavailability
+        const { data: unavailData, error: unavailError } = await supabaseDb.from('instructor_unavailability').select('*');
+        if (unavailError) throw unavailError;
+        instructorUnavailable = unavailData.map(u => ({
+            Instructor: u.instructor,
+            Event_ID: u.event_id,
+            Unavailable_Days: u.unavailable_days
+        }));
+
+        // Load schedule
+        const { data: scheduleData, error: scheduleError } = await supabaseDb.from('schedule').select('*');
+        if (scheduleError) throw scheduleError;
+        
+        schedule = {};
+        scheduleData.forEach(s => {
+            if (!schedule[s.event_id]) {
+                schedule[s.event_id] = {};
             }
-            return true; // Data was loaded
-        } catch (e) {
-            console.error('Failed to load saved round:', e);
+            schedule[s.event_id][s.course_id] = {
+                startDay: s.start_day,
+                days: s.days ? s.days.split(',').map(Number) : [],
+                roomNumber: s.room_number,
+                isDraft: s.is_draft
+            };
+        });
+
+        // Rebuild derived data
+        rebuildAssignments();
+        rebuildUnavailabilityMap();
+        calculateEventRooms();
+
+        // Re-render if data was loaded
+        if (courses.length > 0 || events.length > 0) {
+            renderAssignmentGrid();
+            renderSwimlanes();
+            updateStats();
+            updateConfigureDaysButton();
+        }
+
+        console.log('Loaded data from Supabase');
+        return true;
+    } catch (error) {
+        console.error('Error loading from Supabase:', error);
+        return false;
+    }
+}
+
+// Rebuild assignments from schedule
+function rebuildAssignments() {
+    assignments = {};
+    for (const eventId in schedule) {
+        for (const courseId in schedule[eventId]) {
+            if (!assignments[courseId]) {
+                assignments[courseId] = [];
+            }
+            if (!assignments[courseId].includes(eventId)) {
+                assignments[courseId].push(eventId);
+            }
         }
     }
-    return false; // No data found
+}
+
+// Rebuild unavailability map
+function rebuildUnavailabilityMap() {
+    unavailabilityMap = {};
+    instructorUnavailable.forEach(entry => {
+        const key = `${entry.Instructor}-${entry.Event_ID}`;
+        const days = entry.Unavailable_Days ? entry.Unavailable_Days.split(',').map(d => parseInt(d.trim())) : [];
+        unavailabilityMap[key] = days;
+    });
+}
+
+// Calculate event rooms from events data
+function calculateEventRooms() {
+    eventRooms = {};
+    events.forEach(event => {
+        if (event.Room_Count) {
+            eventRooms[event.Event_ID] = event.Room_Count;
+        }
+    });
 }
 
 // Get current timestamp
@@ -595,7 +769,7 @@ function setupFileInput() {
         // Log upload
         logUpload('Courses', file.name, courses.length, 'Success');
         saveLogs();
-        autoSaveRound();
+        triggerAutoSave();
         
         // Reset file input
         fileInput.value = '';
@@ -646,7 +820,7 @@ function setupRoomsFileInput() {
         // Log upload
         logUpload('Rooms', file.name, Object.keys(eventRooms).length, 'Success');
         saveLogs();
-        autoSaveRound();
+        triggerAutoSave();
         
         // Reset file input
         fileInput.value = '';
@@ -683,7 +857,7 @@ function setupUnavailabilityFileInput() {
         // Re-render grid to show constraints
         renderAssignmentGrid();
         
-        autoSaveRound();
+        triggerAutoSave();
         
         alert(`Loaded unavailability for ${instructorUnavailable.length} entries`);
         
@@ -788,7 +962,7 @@ function setupExcelFileInput() {
             renderAssignmentGrid();
             updateStats();
             updateConfigureDaysButton();
-            autoSaveRound();
+            triggerAutoSave();
             
             // Show results
             let message = `Excel import completed:\n✓ ${successCount} tab(s) imported successfully`;
@@ -1020,7 +1194,7 @@ function handleAssignmentChange(courseId, eventId, isChecked) {
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Update course name globally
@@ -1066,7 +1240,7 @@ function updateCourseName(courseId, newName) {
     renderAssignmentGrid();
     renderSwimlanes();
     updateReports();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Update configure days button state
@@ -1775,7 +1949,7 @@ function addCourseToEvent(eventId, courseId, selectElement) {
     // Re-render swimlanes to show the new course
     renderSwimlanes();
     updateReports(); // Update reports when course is added
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Render a single course swimlane
@@ -2021,7 +2195,7 @@ function handleTimelineDrop(e) {
         updateStats();
         updateReports(); // Update reports after drag/drop
         saveLogs();
-        autoSaveRound();
+        triggerAutoSave();
     }
 }
 
@@ -2087,7 +2261,7 @@ function updateRoomAssignment(eventId, courseId, roomName) {
     );
     
     // Auto-save
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Remove course from event
@@ -2119,7 +2293,7 @@ function removeCourseFromEvent(courseId, eventId) {
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Edit room count for an event
@@ -2198,7 +2372,7 @@ function editRoomCount(eventId, currentCount) {
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Add a room to an event
@@ -2213,7 +2387,7 @@ function addRoom(eventId) {
     // Re-render
     renderSwimlanes();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Change course to a different room
@@ -2260,7 +2434,7 @@ function changeCourseRoom(eventId, courseId, newRoomNumber) {
     // Re-render to show in new room lane
     renderSwimlanes();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Remove a room from an event
@@ -2310,7 +2484,7 @@ function removeRoom(eventId, roomNumber) {
         updateStats();
         updateConfigureDaysButton();
         saveLogs();
-        autoSaveRound();
+        triggerAutoSave();
     }
 }
 
@@ -2586,7 +2760,7 @@ function setupEventsFileInput() {
         renderAssignmentGrid();
         updateStats();
         updateConfigureDaysButton();
-        autoSaveRound();
+        triggerAutoSave();
         
         fileInput.value = '';
     });
@@ -2643,7 +2817,7 @@ function setupEventDaysFileInput() {
         
         renderAssignmentGrid();
         updateStats();
-        autoSaveRound();
+        triggerAutoSave();
         
         alert(`Loaded ${eventDays.length} event days`);
         fileInput.value = '';
@@ -2890,7 +3064,7 @@ function importSchedule(scheduleData, fileName) {
     renderAssignmentGrid();
     updateStats();
     updateConfigureDaysButton();
-    autoSaveRound();
+    triggerAutoSave();
     
     // Show results
     let message = `Successfully imported ${successCount} course assignment(s)`;
@@ -3520,7 +3694,7 @@ function loadRound() {
             updateConfigureDaysButton();
             
             // Auto-save to localStorage
-            autoSaveRound();
+            triggerAutoSave();
             
             const savedAt = data.savedAt || 'Unknown date';
             alert(`Round loaded successfully!\n\nSaved at: ${savedAt}\nCourses: ${courses.length}\nEvents: ${events.length}`);
@@ -4834,7 +5008,7 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
             logChange('Room Selection', courseId, eventId, 'None (deselected)', null);
             renderSwimlanesGrid();
             saveLogs();
-            autoSaveRound();
+            triggerAutoSave();
             return;
         }
         
@@ -4892,7 +5066,7 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
                     logChange('Room Selection', courseId, eventId, `Room ${roomNumber} (Draft)`, null);
                     renderSwimlanesGrid();
                     saveLogs();
-                    autoSaveRound();
+                    triggerAutoSave();
                     return;
                 }
                 
@@ -4926,7 +5100,7 @@ async function selectRoomGrid(eventId, courseId, roomNumber) {
     // Re-render to show updated selection
     renderSwimlanesGrid();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Toggle draft status for a course
@@ -4953,7 +5127,7 @@ function toggleDraftStatus(eventId, courseId) {
     
     renderSwimlanesGrid();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Auto-clear draft status when conflicts are resolved
@@ -5147,7 +5321,7 @@ function handleTimelineDropGrid(e) {
         updateStats();
         updateReportsGrid();
         saveLogs();
-        autoSaveRound();
+        triggerAutoSave();
     }
 }
 
@@ -5212,7 +5386,7 @@ function addCourseToEventGrid(eventId, courseId, selectElement) {
     
     renderSwimlanesGrid();
     updateReportsGrid();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Remove course from event in grid view
@@ -5244,7 +5418,7 @@ function removeCourseFromEventGrid(courseId, eventId) {
     updateStats();
     updateConfigureDaysButton();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }
 
 // Toggle event swimlane in grid view
@@ -5434,7 +5608,7 @@ function toggleEventLock(eventId) {
         lockedEvents.add(eventId);
     }
     
-    autoSaveRound();
+    triggerAutoSave();
     renderSwimlanesGrid();
 }
 
@@ -5616,5 +5790,5 @@ function applyDraftCourse(uniqueId, index) {
     updateStats();
     updateReportsGrid();
     saveLogs();
-    autoSaveRound();
+    triggerAutoSave();
 }

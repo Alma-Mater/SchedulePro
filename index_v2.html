@@ -1242,8 +1242,8 @@
                     <div class="flex-space-between">
                         <div class="section-title no-margin">Configure Days with Room Grid</div>
                         <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-primary btn-small" onclick="document.getElementById('consolidatedExcelInput').click()" title="Upload courses, dates, and instructor availability in one Excel file">📁 Upload Excel File (All-in-One)</button>
-                            <button class="btn btn-primary btn-small" onclick="document.getElementById('scheduleInput').click()" title="Import an existing schedule">📥 Import Existing Schedule</button>
+                            <button class="btn btn-primary btn-small" onclick="document.getElementById('excelFile').click()" title="Upload courses, dates, and instructor availability in one Excel file">📁 Upload Excel File (All-in-One)</button>
+                            <button class="btn btn-primary btn-small" onclick="document.getElementById('scheduleFile').click()" title="Import an existing schedule">📥 Import Existing Schedule</button>
                             <button class="btn btn-primary btn-small" onclick="exportSchedule()" title="Export current schedule in import-compatible format">💾 Export Schedule (Import Format)</button>
                             <button class="btn btn-success btn-small" onclick="exportTrainerContracts()" title="Export scheduled courses by trainer to Excel">📊 Export Trainer Contracts</button>
                             <button class="btn btn-info btn-small" onclick="goToRoomCapacity()">🏢 Room View</button>
@@ -1329,9 +1329,12 @@
 
     <script src="scheduler_v2.js"></script>
     <script>
-        // Initialize Supabase client
+        // Initialize Supabase client (shared with scheduler_v2.js)
         let supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
         let currentUser = null;
+
+        // Make supabaseClient available to scheduler_v2.js
+        window.supabaseClient = supabaseClient;
 
         // Check auth state on load
         async function checkAuth() {
@@ -1339,6 +1342,11 @@
             if (session) {
                 currentUser = session.user;
                 showApp();
+                // Initialize Supabase in scheduler and load data
+                if (typeof initSupabase === 'function') {
+                    initSupabase();
+                    await loadRoundData();
+                }
             } else {
                 showAuthModal();
             }
@@ -1364,7 +1372,11 @@
             } else {
                 currentUser = data.user;
                 showApp();
-                // Data loading will be implemented next
+                // Initialize Supabase in scheduler and load data
+                if (typeof initSupabase === 'function') {
+                    initSupabase();
+                    await loadRoundData();
+                }
             }
         }
 
