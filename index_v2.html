@@ -1330,12 +1330,12 @@
     <script src="scheduler_v2.js"></script>
     <script>
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        let supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
         let currentUser = null;
 
         // Check auth state on load
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 currentUser = session.user;
                 showApp();
@@ -1354,7 +1354,7 @@
                 return;
             }
 
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
                 email: email,
                 password: password
             });
@@ -1364,7 +1364,7 @@
             } else {
                 currentUser = data.user;
                 showApp();
-                await loadDataFromSupabase();
+                // Data loading will be implemented next
             }
         }
 
@@ -1383,7 +1383,7 @@
                 return;
             }
 
-            const { data, error } = await supabase.auth.signUp({
+            const { data, error } = await supabaseClient.auth.signUp({
                 email: email,
                 password: password
             });
@@ -1399,7 +1399,7 @@
 
         // Logout
         async function handleLogout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             showAuthModal();
         }
