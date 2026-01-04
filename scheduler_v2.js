@@ -39,12 +39,12 @@ function triggerAutoSave() {
 // Save all data to Supabase
 async function saveRoundData() {
     if (!supabaseDb) {
-        console.log('Supabase not initialized, skipping save');
+        console.warn('⚠ Supabase not initialized - data will NOT persist on refresh!');
         return;
     }
     
     try {
-        console.log('Auto-saving to Supabase...');
+        console.log('💾 Saving to Supabase...');
         
         // Save courses (delete all and re-insert)
         await supabaseDb.from('courses').delete().neq('id', 0);
@@ -57,7 +57,11 @@ async function saveRoundData() {
                 topic: c.Topic || null
             }));
             const { error: coursesError } = await supabaseDb.from('courses').insert(coursesData);
-            if (coursesError) console.error('Error saving courses:', coursesError);
+            if (coursesError) {
+                console.error('❌ Error saving courses:', coursesError);
+                return;
+            }
+            console.log(`✓ Saved ${courses.length} courses`);
         }
         
         // Save schedule (delete all and re-insert)
@@ -79,7 +83,11 @@ async function saveRoundData() {
         }
         if (scheduleData.length > 0) {
             const { error: scheduleError } = await supabaseDb.from('schedule').insert(scheduleData);
-            if (scheduleError) console.error('Error saving schedule:', scheduleError);
+            if (scheduleError) {
+                console.error('❌ Error saving schedule:', scheduleError);
+                return;
+            }
+            console.log(`✓ Saved ${scheduleData.length} schedule entries`);
         }
         
         // Update room counts in events table (update each event)
@@ -89,12 +97,13 @@ async function saveRoundData() {
                 .update({ room_count: eventRooms[eventId] })
                 .eq('event_id', eventId);
             
-            if (roomError) console.error(`Error updating room count for ${eventId}:`, roomError);
+            if (roomError) console.error(`❌ Error updating room count for ${eventId}:`, roomError);
         }
         
-        console.log('✓ Auto-save complete');
+        console.log('✅ All data saved to Supabase successfully!');
     } catch (error) {
-        console.error('Auto-save error:', error);
+        console.error('❌ Critical save error:', error);
+        alert('Failed to save to Supabase. Your data may not persist on refresh. Check console for details.');
     }
 }
 
@@ -480,7 +489,7 @@ async function loadRoundData() {
         calculateEventRooms();
 
         // Re-render if data was loaded
-        if (courses.length > 0 || events.length > 0) {
+        if (courses.length > 0 && events.length > 0) {
             renderAssignmentGrid();
             renderSwimlanes();
             renderSwimlanesGrid(); // Render Room Grid view
@@ -1035,7 +1044,11 @@ function setupExcelFileInput() {
             renderSwimlanesGrid(); // Update Room Grid view if active
             updateReportsGrid(); // Update Room Grid reports
             renderCoursesTableGrid(); // Update courses table
-            triggerAutoSave();
+            
+            // Save immediately to Supabase (don't wait for auto-save timeout)
+            if (supabaseDb) {
+                await saveRoundData();
+            }
             
             // Show results
             let message = `Excel import completed:\n✓ ${successCount} tab(s) imported successfully`;
@@ -3893,6 +3906,98 @@ function toggleCoursesTableGrid() {
         toggle.textContent = '▼ Collapse';
         renderCoursesTableGrid();
     }
+}
+
+// Toggle change log section for Room Grid view
+function toggleChangeLogGrid() {
+    const content = document.getElementById('changeLogContentGrid');
+    const toggle = document.getElementById('changeLogToggleGrid');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.textContent = '▶ Expand';
+    } else {
+        content.classList.add('expanded');
+        toggle.textContent = '▼ Collapse';
+        renderChangeLogGrid();
+    }
+}
+
+// Render change log table for Room Grid view
+function renderChangeLogGrid() {
+    const container = document.getElementById('changeLogTableContainerGrid');
+    if (!container) return;
+    
+    // Combine all log types
+    const allLogs = [
+        ...changeLog.map(entry => ({ ...entry, logType: 'change' })),
+        ...uploadsLog.map(entry => ({ ...entry, logType: 'upload' }))
+    ];
+    
+    // Sort by timestamp (most recent first)
+    allLogs.sort((a, b) => {
+        const timeA = new Date(a.timestamp || 0);
+        const timeB = new Date(b.timestamp || 0);
+        return timeB - timeA;
+    });
+    
+    if (allLogs.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d;">No changes logged yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="report-table"><thead><tr>';
+    html += '<th>Timestamp</th><th>Type</th><th>Action</th><th>Details</th><th>Notes</th>';
+    html += '</tr></thead><tbody>';
+    
+    // Show most recent 50 entries
+    allLogs.slice(0, 50).forEach(entry => {
+        if (entry.logType === 'change') {
+            // Schedule change log entry
+            const action = entry.action || '';
+            const courseInfo = entry.courseTitle ? `${entry.courseTitle} (${entry.courseId})` : entry.courseId;
+            const dateInfo = entry.firstDay && entry.lastDay ? `${entry.firstDay} to ${entry.lastDay}` : '';
+            const oldDateInfo = entry.oldFirstDay && entry.oldLastDay ? `Was: ${entry.oldFirstDay} to ${entry.oldLastDay}` : '';
+            
+            html += `<tr>
+                <td style="white-space: nowrap;">${entry.timestamp || ''}</td>
+                <td><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 3px; font-size: 0.85em;">Schedule</span></td>
+                <td>${action}</td>
+                <td>${courseInfo}<br><small style="color: #666;">${dateInfo}</small></td>
+                <td><small style="color: #666;">${oldDateInfo || entry.notes || ''}</small></td>
+            </tr>`;
+        } else {
+            // Upload/system log entry
+            const uploadType = entry.uploadType || '';
+            const fileName = entry.fileName || '';
+            const status = entry.status || '';
+            const notes = entry.notes || '';
+            const recordCount = entry.recordsCount !== undefined ? `(${entry.recordsCount} records)` : '';
+            
+            const typeColor = uploadType.includes('COURSE') ? '#fff3e0' : 
+                            uploadType.includes('ROOM') ? '#f3e5f5' :
+                            uploadType.includes('EVENT') ? '#e8f5e9' : '#f5f5f5';
+            const textColor = uploadType.includes('COURSE') ? '#e65100' : 
+                            uploadType.includes('ROOM') ? '#6a1b9a' :
+                            uploadType.includes('EVENT') ? '#2e7d32' : '#424242';
+            
+            html += `<tr>
+                <td style="white-space: nowrap;">${entry.timestamp || ''}</td>
+                <td><span style="background: ${typeColor}; color: ${textColor}; padding: 2px 8px; border-radius: 3px; font-size: 0.85em;">${uploadType}</span></td>
+                <td>${status}</td>
+                <td>${fileName} ${recordCount}</td>
+                <td><small style="color: #666;">${notes}</small></td>
+            </tr>`;
+        }
+    });
+    
+    html += '</tbody></table>';
+    
+    if (allLogs.length > 50) {
+        html += `<p style="color: #6c757d; text-align: center; margin-top: 10px;">Showing most recent 50 of ${allLogs.length} entries</p>`;
+    }
+    
+    container.innerHTML = html;
 }
 
 // Render editable courses table
