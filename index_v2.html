@@ -571,6 +571,10 @@
         .collapsible-header * {
             pointer-events: none;
         }
+        
+        .collapsible-header button {
+            pointer-events: auto;
+        }
 
         .collapsible-header:hover {
             opacity: 0.8;
@@ -1139,7 +1143,7 @@
                             <button class="btn btn-success btn-small" onclick="event.stopPropagation(); goToConfigureDays()" id="configureDaysBtn">
                                 ⚙️ Configure Days
                             </button>
-                            <button class="btn btn-info btn-small" onclick="goToRoomGridView(event)" id="roomGridBtn">
+                            <button class="btn btn-info btn-small" onclick="event.stopPropagation(); goToRoomGridView()" id="roomGridBtn">
                                 🏢 Room Grid View
                             </button>
                             <div class="collapse-toggle" id="step2Toggle">▼ Collapse Section</div>
