@@ -6771,6 +6771,49 @@ function anonymizeInstructor(fullName) {
 function buildDataContext(question = '') {
     let context = 'You are an AI assistant for a course scheduling system. IMPORTANT: Only provide information that is explicitly in the data below. Do not guess or extrapolate.\n\n';
     
+    // Check if question is about "how to" or usage instructions
+    const isHowToQuestion = /how (do|can|to)|what.*steps|guide|instructions|use|add|move|schedule|book|place/i.test(question);
+    
+    // Add usage instructions if asking "how to" questions
+    if (isHowToQuestion) {
+        context += `HOW TO USE ROOM GRID VIEW:\n\n`;
+        
+        context += `1. SCHEDULE A COURSE:\n`;
+        context += `   - Expand the "📊 All Open Bookings" section at the top\n`;
+        context += `   - Find available time slots (green boxes) that show room and day ranges\n`;
+        context += `   - Use the dropdown menu in a time slot to select a course\n`;
+        context += `   - The course appears in the "Draft Selections" list below that slot\n`;
+        context += `   - Click "Apply" on the draft course to officially schedule it\n`;
+        context += `   - Or click "Apply All" to schedule all draft courses at once\n\n`;
+        
+        context += `2. VIEW SCHEDULED COURSES:\n`;
+        context += `   - Each event shows as an expandable section\n`;
+        context += `   - Courses appear as colored blocks on a timeline\n`;
+        context += `   - The timeline shows which days (Day 1, 2, 3...) each course occupies\n`;
+        context += `   - Multiple rooms are stacked vertically for each event\n\n`;
+        
+        context += `3. MOVE OR EDIT A COURSE:\n`;
+        context += `   - Drag the course block to a different day on the timeline\n`;
+        context += `   - Courses snap to valid day positions automatically\n`;
+        context += `   - Red highlighting indicates instructor availability conflicts\n`;
+        context += `   - Click "Remove" button to unschedule a course from an event\n\n`;
+        
+        context += `4. MANAGE DRAFT STATUS:\n`;
+        context += `   - Click "📝 Draft" button to mark a course as tentative\n`;
+        context += `   - Click "✓ Finalize" to confirm a draft course\n`;
+        context += `   - Draft courses show with dashed borders\n\n`;
+        
+        context += `5. LOCK EVENTS:\n`;
+        context += `   - Click the lock icon (🔓) to prevent changes to an event\n`;
+        context += `   - Locked events (🔒) cannot be edited until unlocked\n\n`;
+        
+        context += `6. EXPORT DATA:\n`;
+        context += `   - Click "📄 Export to CSV" to download the complete schedule\n`;
+        context += `   - The export includes all course placements, dates, and room assignments\n\n`;
+        
+        context += `---\n\n`;
+    }
+    
     // Check if question is about a specific instructor
     const instructorMatch = question.match(/([A-Z][a-z]+\s+[A-Z]\.)/);
     const searchInstructor = instructorMatch ? instructorMatch[1] : null;
