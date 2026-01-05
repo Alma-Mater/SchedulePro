@@ -21,9 +21,10 @@ git checkout firebase-datastore
 When you're done with Firebase development:
 
 If it works and you want to keep it:
+git checkout main
+git merge firebase-datastore
 
 
-git checkout maingit merge firebase-datastore
 If you want to abandon it and delete the branch:
 
 
@@ -37,12 +38,15 @@ git branch
 Commit regularly on the Firebase branch:
 
 
-git add .git commit -m "Add Firebase authentication"git push -u origin firebase-datastore
+git add .git commit -m "Add Firebase authentication"
+
+git push -u origin firebase-datastore
 This way your localStorage version stays intact on main, and you can freely experiment with Firebase on the separate branch without any risk.
 
 No, only for the first push. The -u flag sets the upstream tracking, so after you run:
 
 Once, you can then just use:
 
-For all subsequen
+For all subsequent use
+ git push
 
