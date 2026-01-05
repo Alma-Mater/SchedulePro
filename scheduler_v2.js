@@ -6836,6 +6836,7 @@ function buildDataContext(question = '') {
                     const hasConflict = placement.days.some(day => blockedDays.includes(day));
                     if (hasConflict) {
                         conflicts.push(`${course.Course_ID} (${anonName}) has instructor unavailability conflict`);
+                    }
                 }
             }
         }
