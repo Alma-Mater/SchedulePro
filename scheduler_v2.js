@@ -6768,56 +6768,74 @@ function anonymizeInstructor(fullName) {
 }
 
 // Build anonymized data context
-function buildDataContext() {
-    let context = 'You are an AI assistant helping with course scheduling. Answer questions based on this data:\n\n';
+function buildDataContext(question = '') {
+    let context = 'You are an AI assistant for a course scheduling system. IMPORTANT: Only provide information that is explicitly in the data below. Do not guess or extrapolate.\n\n';
     
-    // Courses
-    context += `COURSES (${courses.length} total):\n`;
-    courses.forEach(c => {
-        context += `- ${c.Course_ID}: "${c.Course_Name}", Instructor: ${anonymizeInstructor(c.Instructor)}, Duration: ${c.Duration_Days} days`;
-        if (c.Topic) context += `, Topic: ${c.Topic}`;
-        context += '\n';
-    });
+    // Check if question is about a specific instructor
+    const instructorMatch = question.match(/([A-Z][a-z]+\s+[A-Z]\.)/);
+    const searchInstructor = instructorMatch ? instructorMatch[1] : null;
     
-    // Events
-    context += `\nEVENTS (${events.length} total):\n`;
-    events.forEach(e => {
-        context += `- ${e.Event_ID}: "${e.Event}", Location: ${e.Location || 'N/A'}, Total Days: ${e.Total_Days}, Rooms: ${eventRooms[e.Event_ID] || 1}`;
-        const eventDaysData = eventDays.filter(d => d.Event_ID === e.Event_ID);
-        if (eventDaysData.length > 0) {
-            const firstDay = eventDaysData[0].Day_Date;
-            const lastDay = eventDaysData[eventDaysData.length - 1].Day_Date;
-            context += `, Dates: ${firstDay} to ${lastDay}`;
-        }
-        context += '\n';
-    });
-    
-    // Schedule
-    context += `\nSCHEDULED COURSES:\n`;
+    // Build scheduled courses list with full details
+    const scheduledCourses = [];
     for (const eventId in schedule) {
         const event = events.find(e => e.Event_ID === eventId);
-        const eventName = event ? event.Event : eventId;
         for (const courseId in schedule[eventId]) {
             const placement = schedule[eventId][courseId];
             const course = courses.find(c => c.Course_ID === courseId);
             if (course && placement.startDay) {
-                const days = placement.days && placement.days.length > 0 ? placement.days : [];
-                context += `- ${course.Course_ID} in ${eventName}: Days ${days.join(',') || 'TBD'}, Room ${placement.roomNumber || 1}\n`;
+                const anonName = anonymizeInstructor(course.Instructor);
+                // If searching for specific instructor, only include their courses
+                if (!searchInstructor || anonName === searchInstructor) {
+                    const days = placement.days && placement.days.length > 0 ? placement.days : [];
+                    const eventDaysData = eventDays.filter(d => d.Event_ID === eventId && days.includes(d.Day_Number));
+                    const dates = eventDaysData.map(d => d.Day_Date).join(', ');
+                    
+                    scheduledCourses.push({
+                        courseId: course.Course_ID,
+                        courseName: course.Course_Name,
+                        instructor: anonName,
+                        eventId: eventId,
+                        eventName: event ? event.Event : eventId,
+                        location: event ? event.Location : 'N/A',
+                        days: days.join(','),
+                        dates: dates || 'TBD',
+                        room: placement.roomNumber || 1,
+                        duration: course.Duration_Days
+                    });
+                }
             }
         }
     }
     
-    // Conflicts summary
+    // Output scheduled courses in structured format
+    context += `SCHEDULED COURSES (${scheduledCourses.length} total):\n`;
+    scheduledCourses.forEach(sc => {
+        context += `- Course: ${sc.courseId} "${sc.courseName}"\n`;
+        context += `  Instructor: ${sc.instructor}\n`;
+        context += `  Event: ${sc.eventName} at ${sc.location}\n`;
+        context += `  Days: ${sc.days} (${sc.dates})\n`;
+        context += `  Room: ${sc.room}, Duration: ${sc.duration} days\n\n`;
+    });
+    
+    // Add summary statistics
+    context += `\nSUMMARY:\n`;
+    context += `- Total courses scheduled: ${scheduledCourses.length}\n`;
+    context += `- Total courses in system: ${courses.length}\n`;
+    context += `- Total events: ${events.length}\n`;
+    
+    // Only show conflicts if relevant
     const conflicts = [];
     for (const eventId in schedule) {
         for (const courseId in schedule[eventId]) {
             const placement = schedule[eventId][courseId];
             const course = courses.find(c => c.Course_ID === courseId);
             if (course && placement.days && placement.days.length > 0) {
-                const blockedDays = getBlockedDays(course.Instructor, eventId);
-                const hasConflict = placement.days.some(day => blockedDays.includes(day));
-                if (hasConflict) {
-                    conflicts.push(`${course.Course_ID} (${anonymizeInstructor(course.Instructor)}) has instructor unavailability conflict`);
+                const anonName = anonymizeInstructor(course.Instructor);
+                if (!searchInstructor || anonName === searchInstructor) {
+                    const blockedDays = getBlockedDays(course.Instructor, eventId);
+                    const hasConflict = placement.days.some(day => blockedDays.includes(day));
+                    if (hasConflict) {
+                        conflicts.push(`${course.Course_ID} (${anonName}) has instructor unavailability conflict`);
                 }
             }
         }
@@ -6859,7 +6877,7 @@ async function sendAiMessage() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
     try {
-        const context = buildDataContext();
+        const context = buildDataContext(question);  // Pass question for filtering
         
         // Build conversation with history
         const contents = [];
