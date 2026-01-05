@@ -6741,6 +6741,9 @@ function applyDraftCourse(uniqueId, index) {
 
 // ==================== AI CHAT ASSISTANT ====================
 
+// Conversation history
+let conversationHistory = [];
+
 // Toggle chat panel
 function toggleAiChat() {
     const panel = document.getElementById('aiChatPanel');
@@ -6857,16 +6860,39 @@ async function sendAiMessage() {
     
     try {
         const context = buildDataContext();
-        const prompt = `${context}\n\nUser Question: ${question}`;
+        
+        // Build conversation with history
+        const contents = [];
+        
+        // Add system context as first message
+        contents.push({
+            role: 'user',
+            parts: [{ text: context }]
+        });
+        contents.push({
+            role: 'model',
+            parts: [{ text: 'I understand the scheduling data. I will answer questions using the anonymized instructor names like "John S." and keep responses concise.' }]
+        });
+        
+        // Add conversation history (last 5 exchanges to stay within token limits)
+        const recentHistory = conversationHistory.slice(-10);
+        recentHistory.forEach(msg => {
+            contents.push({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            });
+        });
+        
+        // Add current question
+        contents.push({
+            role: 'user',
+            parts: [{ text: question }]
+        });
         
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }]
-            })
+            body: JSON.stringify({ contents: contents })
         });
         
         if (!response.ok) {
@@ -6875,6 +6901,10 @@ async function sendAiMessage() {
         
         const data = await response.json();
         const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+        
+        // Add to conversation history
+        conversationHistory.push({ role: 'user', text: question });
+        conversationHistory.push({ role: 'model', text: aiResponse });
         
         // Remove loading
         loadingMsg.remove();
@@ -6888,7 +6918,10 @@ async function sendAiMessage() {
         
     } catch (error) {
         console.error('AI Chat Error:', error);
-        loadingMsg.textContent = '❌ Sorry, there was an error. Please try again.';
+        const errorMsg = error.message.includes('503') 
+            ? '⚠️ Google servers are busy. Please try again in a moment.'
+            : '❌ Sorry, there was an error. Please try again.';
+        loadingMsg.textContent = errorMsg;
         loadingMsg.style.color = '#dc3545';
     }
 }
