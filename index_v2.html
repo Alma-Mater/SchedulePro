@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Supabase configuration -->
     <script src="supabase-config.js"></script>
+    <!-- Gemini AI configuration -->
+    <script src="gemini-config.js"></script>
     <style>
         * {
             margin: 0;
@@ -1093,6 +1095,37 @@
         </div>
     </div>
 
+    <!-- AI Chat Widget -->
+    <div id="aiChatWidget" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+        <button id="aiChatButton" onclick="toggleAiChat()" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+            💬
+        </button>
+        <div id="aiChatPanel" style="display: none; position: absolute; bottom: 80px; right: 0; width: 380px; height: 500px; background: white; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: bold; font-size: 16px;">AI Schedule Assistant</div>
+                    <div style="font-size: 11px; opacity: 0.9;">Ask me anything about your schedule</div>
+                </div>
+                <button onclick="toggleAiChat()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;">×</button>
+            </div>
+            <div id="aiChatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa;">
+                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 13px; color: #666;">👋 Hi! I can help you with:</div>
+                    <ul style="font-size: 12px; color: #666; margin: 8px 0 0 0; padding-left: 20px;">
+                        <li>Finding courses by instructor</li>
+                        <li>Checking room availability</li>
+                        <li>Identifying scheduling conflicts</li>
+                        <li>Answering questions about events</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="padding: 12px; background: white; border-top: 1px solid #dee2e6; display: flex; gap: 8px;">
+                <input type="text" id="aiChatInput" placeholder="Ask a question..." style="flex: 1; padding: 10px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 14px;" onkeypress="if(event.key==='Enter') sendAiMessage()">
+                <button onclick="sendAiMessage()" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Send</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <button class="year-button" onclick="return false;">2026</button>
@@ -1106,7 +1139,7 @@
 
         <div class="main-content">
             <!-- View 1: Grid Selection -->
-            <div id="gridView" class="view active">
+            <div id="gridView" class="view">
                 <div class="section">
                     <div class="section-title">Step 1: Load Course Data</div>
                     <div class="margin-bottom-15">
@@ -1336,7 +1369,7 @@
             </div>
 
             <!-- View 4: Room Grid Configuration -->
-            <div id="roomGridView" class="view">
+            <div id="roomGridView" class="view active">
                 <div class="section">
                     <div class="flex-space-between">
                         <div class="section-title no-margin">Configure Days with Room Grid</div>

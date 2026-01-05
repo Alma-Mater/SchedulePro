@@ -6738,3 +6738,157 @@ function applyDraftCourse(uniqueId, index) {
     saveLogs();
     triggerAutoSave();
 }
+
+// ==================== AI CHAT ASSISTANT ====================
+
+// Toggle chat panel
+function toggleAiChat() {
+    const panel = document.getElementById('aiChatPanel');
+    const button = document.getElementById('aiChatButton');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'flex';
+        button.textContent = '✕';
+    } else {
+        panel.style.display = 'none';
+        button.textContent = '💬';
+    }
+}
+
+// Anonymize instructor name
+function anonymizeInstructor(fullName) {
+    if (!fullName) return 'Unknown';
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return parts[0];
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1][0];
+    return `${firstName} ${lastInitial}.`;
+}
+
+// Build anonymized data context
+function buildDataContext() {
+    let context = 'You are an AI assistant helping with course scheduling. Answer questions based on this data:\n\n';
+    
+    // Courses
+    context += `COURSES (${courses.length} total):\n`;
+    courses.forEach(c => {
+        context += `- ${c.Course_ID}: "${c.Course_Name}", Instructor: ${anonymizeInstructor(c.Instructor)}, Duration: ${c.Duration_Days} days`;
+        if (c.Topic) context += `, Topic: ${c.Topic}`;
+        context += '\n';
+    });
+    
+    // Events
+    context += `\nEVENTS (${events.length} total):\n`;
+    events.forEach(e => {
+        context += `- ${e.Event_ID}: "${e.Event}", Location: ${e.Location || 'N/A'}, Total Days: ${e.Total_Days}, Rooms: ${eventRooms[e.Event_ID] || 1}`;
+        const eventDaysData = eventDays.filter(d => d.Event_ID === e.Event_ID);
+        if (eventDaysData.length > 0) {
+            const firstDay = eventDaysData[0].Day_Date;
+            const lastDay = eventDaysData[eventDaysData.length - 1].Day_Date;
+            context += `, Dates: ${firstDay} to ${lastDay}`;
+        }
+        context += '\n';
+    });
+    
+    // Schedule
+    context += `\nSCHEDULED COURSES:\n`;
+    for (const eventId in schedule) {
+        const event = events.find(e => e.Event_ID === eventId);
+        const eventName = event ? event.Event : eventId;
+        for (const courseId in schedule[eventId]) {
+            const placement = schedule[eventId][courseId];
+            const course = courses.find(c => c.Course_ID === courseId);
+            if (course && placement.startDay) {
+                const days = placement.days && placement.days.length > 0 ? placement.days : [];
+                context += `- ${course.Course_ID} in ${eventName}: Days ${days.join(',') || 'TBD'}, Room ${placement.roomNumber || 1}\n`;
+            }
+        }
+    }
+    
+    // Conflicts summary
+    const conflicts = [];
+    for (const eventId in schedule) {
+        for (const courseId in schedule[eventId]) {
+            const placement = schedule[eventId][courseId];
+            const course = courses.find(c => c.Course_ID === courseId);
+            if (course && placement.days && placement.days.length > 0) {
+                const blockedDays = getBlockedDays(course.Instructor, eventId);
+                const hasConflict = placement.days.some(day => blockedDays.includes(day));
+                if (hasConflict) {
+                    conflicts.push(`${course.Course_ID} (${anonymizeInstructor(course.Instructor)}) has instructor unavailability conflict`);
+                }
+            }
+        }
+    }
+    
+    if (conflicts.length > 0) {
+        context += `\nCONFLICTS (${conflicts.length} total):\n`;
+        conflicts.forEach(c => context += `- ${c}\n`);
+    }
+    
+    context += '\n\nIMPORTANT: Always refer to instructors by their anonymized names (e.g., "John S."). Keep responses concise and helpful.';
+    
+    return context;
+}
+
+// Send message to AI
+async function sendAiMessage() {
+    const input = document.getElementById('aiChatInput');
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const question = input.value.trim();
+    
+    if (!question) return;
+    
+    // Add user message
+    const userMsg = document.createElement('div');
+    userMsg.style.cssText = 'background: #667eea; color: white; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; margin-left: auto; text-align: right; font-size: 14px;';
+    userMsg.textContent = question;
+    messagesContainer.appendChild(userMsg);
+    
+    input.value = '';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Show loading
+    const loadingMsg = document.createElement('div');
+    loadingMsg.id = 'aiLoading';
+    loadingMsg.style.cssText = 'background: white; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px; color: #666;';
+    loadingMsg.textContent = '💭 Thinking...';
+    messagesContainer.appendChild(loadingMsg);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    try {
+        const context = buildDataContext();
+        const prompt = `${context}\n\nUser Question: ${question}`;
+        
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+        
+        // Remove loading
+        loadingMsg.remove();
+        
+        // Add AI response
+        const aiMsg = document.createElement('div');
+        aiMsg.style.cssText = 'background: white; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px; white-space: pre-wrap;';
+        aiMsg.textContent = aiResponse;
+        messagesContainer.appendChild(aiMsg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+    } catch (error) {
+        console.error('AI Chat Error:', error);
+        loadingMsg.textContent = '❌ Sorry, there was an error. Please try again.';
+        loadingMsg.style.color = '#dc3545';
+    }
+}
