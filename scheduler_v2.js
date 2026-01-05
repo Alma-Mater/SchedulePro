@@ -6743,6 +6743,8 @@ function applyDraftCourse(uniqueId, index) {
 
 // Conversation history
 let conversationHistory = [];
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 5000; // 5 seconds between requests
 
 // Toggle chat panel
 function toggleAiChat() {
@@ -6772,46 +6774,18 @@ function buildDataContext(question = '') {
     let context = 'You are an AI assistant for a course scheduling system. IMPORTANT: Only provide information that is explicitly in the data below. Do not guess or extrapolate.\n\n';
     
     // Check if question is about "how to" or usage instructions
-    const isHowToQuestion = /how (do|can|to)|what.*steps|guide|instructions|use|add|move|schedule|book|place/i.test(question);
+    const isHowToQuestion = /how (do|can|to)|what.*steps|guide|instructions|use the|using|tutorial/i.test(question);
     
-    // Add usage instructions if asking "how to" questions
+    // For "how to" questions, skip data and only send instructions
     if (isHowToQuestion) {
-        context += `HOW TO USE ROOM GRID VIEW:\n\n`;
-        
-        context += `1. SCHEDULE A COURSE:\n`;
-        context += `   - Expand the "📊 All Open Bookings" section at the top\n`;
-        context += `   - Find available time slots (green boxes) that show room and day ranges\n`;
-        context += `   - Use the dropdown menu in a time slot to select a course\n`;
-        context += `   - The course appears in the "Draft Selections" list below that slot\n`;
-        context += `   - Click "Apply" on the draft course to officially schedule it\n`;
-        context += `   - Or click "Apply All" to schedule all draft courses at once\n\n`;
-        
-        context += `2. VIEW SCHEDULED COURSES:\n`;
-        context += `   - Each event shows as an expandable section\n`;
-        context += `   - Courses appear as colored blocks on a timeline\n`;
-        context += `   - The timeline shows which days (Day 1, 2, 3...) each course occupies\n`;
-        context += `   - Multiple rooms are stacked vertically for each event\n\n`;
-        
-        context += `3. MOVE OR EDIT A COURSE:\n`;
-        context += `   - Drag the course block to a different day on the timeline\n`;
-        context += `   - Courses snap to valid day positions automatically\n`;
-        context += `   - Red highlighting indicates instructor availability conflicts\n`;
-        context += `   - Click "Remove" button to unschedule a course from an event\n\n`;
-        
-        context += `4. MANAGE DRAFT STATUS:\n`;
-        context += `   - Click "📝 Draft" button to mark a course as tentative\n`;
-        context += `   - Click "✓ Finalize" to confirm a draft course\n`;
-        context += `   - Draft courses show with dashed borders\n\n`;
-        
-        context += `5. LOCK EVENTS:\n`;
-        context += `   - Click the lock icon (🔓) to prevent changes to an event\n`;
-        context += `   - Locked events (🔒) cannot be edited until unlocked\n\n`;
-        
-        context += `6. EXPORT DATA:\n`;
-        context += `   - Click "📄 Export to CSV" to download the complete schedule\n`;
-        context += `   - The export includes all course placements, dates, and room assignments\n\n`;
-        
-        context += `---\n\n`;
+        context += `ROOM GRID VIEW USAGE:\n\n`;
+        context += `SCHEDULE: Expand "All Open Bookings" → select course from dropdown → click "Apply"\n`;
+        context += `MOVE: Drag course blocks to different days on timeline\n`;
+        context += `REMOVE: Click "Remove" button on any course\n`;
+        context += `DRAFT: Click "📝 Draft" to mark tentative, "✓ Finalize" to confirm\n`;
+        context += `LOCK: Click lock icon (🔓/🔒) to prevent/allow changes\n`;
+        context += `EXPORT: Click "📄 Export to CSV" for full schedule\n\n`;
+        return context; // Return early - no data needed for usage questions
     }
     
     // Check if question is about a specific instructor
@@ -6903,6 +6877,21 @@ async function sendAiMessage() {
     
     if (!question) return;
     
+    // Rate limiting check
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        const waitSeconds = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000);
+        const tempMsg = document.createElement('div');
+        tempMsg.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px;';
+        tempMsg.textContent = `⏱️ Please wait ${waitSeconds} more seconds to avoid rate limits.`;
+        messagesContainer.appendChild(tempMsg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        setTimeout(() => tempMsg.remove(), 3000);
+        return;
+    }
+    lastRequestTime = now;
+    
     // Add user message
     const userMsg = document.createElement('div');
     userMsg.style.cssText = 'background: #667eea; color: white; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; margin-left: auto; text-align: right; font-size: 14px;';
@@ -6936,8 +6925,8 @@ async function sendAiMessage() {
             parts: [{ text: 'I understand the scheduling data. I will answer questions using the anonymized instructor names like "John S." and keep responses concise.' }]
         });
         
-        // Add conversation history (last 5 exchanges to stay within token limits)
-        const recentHistory = conversationHistory.slice(-10);
+        // Add conversation history (last 3 exchanges = 6 messages to reduce token usage)
+        const recentHistory = conversationHistory.slice(-6);
         recentHistory.forEach(msg => {
             contents.push({
                 role: msg.role,
@@ -6980,10 +6969,23 @@ async function sendAiMessage() {
         
     } catch (error) {
         console.error('AI Chat Error:', error);
-        const errorMsg = error.message.includes('503') 
-            ? '⚠️ Google servers are busy. Please try again in a moment.'
-            : '❌ Sorry, there was an error. Please try again.';
+        let errorMsg = '❌ Sorry, there was an error. Please try again.';
+        
+        if (error.message.includes('429')) {
+            errorMsg = '⏱️ Rate limit reached (15 requests/minute). Please wait 60 seconds and try again.';
+            // Disable input for 60 seconds
+            const input = document.getElementById('aiChatInput');
+            input.disabled = true;
+            input.placeholder = 'Cooling down... wait 60 seconds';
+            setTimeout(() => {
+                input.disabled = false;
+                input.placeholder = 'Ask about schedules, instructors, or how to use the app...';
+            }, 60000);
+        } else if (error.message.includes('503')) {
+            errorMsg = '⚠️ Google servers are busy. Please try again in a moment.';
+        }
+        
         loadingMsg.textContent = errorMsg;
-        loadingMsg.style.color = '#dc3545';
+        loadingMsg.style.color = '#1565c0';
     }
 }
