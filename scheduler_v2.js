@@ -58,7 +58,7 @@ function showActionModal(title, message, confirmCallback) {
     
     // Set up confirm button click handler
     const confirmBtn = document.getElementById('actionModalConfirm');
-    confirmBtn.onclick = function() {
+    const handleConfirm = function() {
         const comment = commentElement.value.trim();
         const callback = actionModalCallback; // Store callback before closing
         closeActionModal();
@@ -66,11 +66,39 @@ function showActionModal(title, message, confirmCallback) {
             callback(comment);
         }
     };
+    
+    confirmBtn.onclick = handleConfirm;
+    
+    // Add Enter key handler
+    const handleKeyDown = function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleConfirm();
+        } else if (e.key === 'Escape') {
+            closeActionModal();
+        }
+    };
+    
+    modalElement.addEventListener('keydown', handleKeyDown);
+    
+    // Store the handler so we can remove it later
+    modalElement._keyDownHandler = handleKeyDown;
+    
+    // Focus the comment textarea
+    setTimeout(() => commentElement.focus(), 100);
 }
 
 // Close action modal
 function closeActionModal() {
-    document.getElementById('actionModal').style.display = 'none';
+    const modalElement = document.getElementById('actionModal');
+    modalElement.style.display = 'none';
+    
+    // Remove the keydown event listener
+    if (modalElement._keyDownHandler) {
+        modalElement.removeEventListener('keydown', modalElement._keyDownHandler);
+        modalElement._keyDownHandler = null;
+    }
+    
     actionModalCallback = null;
 }
 
