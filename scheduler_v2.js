@@ -6877,21 +6877,6 @@ async function sendAiMessage() {
     
     if (!question) return;
     
-    // Rate limiting check
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime;
-    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-        const waitSeconds = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000);
-        const tempMsg = document.createElement('div');
-        tempMsg.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px;';
-        tempMsg.textContent = `⏱️ Please wait ${waitSeconds} more seconds to avoid rate limits.`;
-        messagesContainer.appendChild(tempMsg);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        setTimeout(() => tempMsg.remove(), 3000);
-        return;
-    }
-    lastRequestTime = now;
-    
     // Add user message
     const userMsg = document.createElement('div');
     userMsg.style.cssText = 'background: #667eea; color: white; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; margin-left: auto; text-align: right; font-size: 14px;';
