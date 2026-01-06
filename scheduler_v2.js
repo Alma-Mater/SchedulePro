@@ -4182,11 +4182,28 @@ function renderChangeLogGrid() {
         ...uploadsLog.map(entry => ({ ...entry, logType: 'upload' }))
     ];
     
-    // Sort by timestamp (most recent first)
+    // Get current sort order (default: timestamp descending)
+    if (!window.changeLogSort) {
+        window.changeLogSort = { column: 'timestamp', ascending: false };
+    }
+    
+    // Sort based on current sort settings
     allLogs.sort((a, b) => {
-        const timeA = new Date(a.timestamp || 0);
-        const timeB = new Date(b.timestamp || 0);
-        return timeB - timeA;
+        let valA, valB;
+        
+        if (window.changeLogSort.column === 'timestamp') {
+            valA = new Date(a.timestamp || 0);
+            valB = new Date(b.timestamp || 0);
+        } else if (window.changeLogSort.column === 'action') {
+            valA = (a.action || a.status || '').toLowerCase();
+            valB = (b.action || b.status || '').toLowerCase();
+        } else {
+            return 0;
+        }
+        
+        if (valA < valB) return window.changeLogSort.ascending ? -1 : 1;
+        if (valA > valB) return window.changeLogSort.ascending ? 1 : -1;
+        return 0;
     });
     
     if (allLogs.length === 0) {
@@ -4194,8 +4211,13 @@ function renderChangeLogGrid() {
         return;
     }
     
+    const sortIcon = window.changeLogSort.ascending ? '▲' : '▼';
+    const actionSort = window.changeLogSort.column === 'action' ? sortIcon : '';
+    
     let html = '<table class="report-table"><thead><tr>';
-    html += '<th>Timestamp</th><th>Type</th><th>Action</th><th>Details</th><th>Notes</th>';
+    html += '<th>Timestamp</th><th>Type</th>';
+    html += `<th style="cursor: pointer;" onclick="sortChangeLogBy('action')" title="Click to sort">Action ${actionSort}</th>`;
+    html += '<th>Details</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
     
     // Show most recent 50 entries
@@ -4249,6 +4271,23 @@ function renderChangeLogGrid() {
     }
     
     container.innerHTML = html;
+}
+
+// Sort change log by column
+function sortChangeLogBy(column) {
+    if (!window.changeLogSort) {
+        window.changeLogSort = { column: 'timestamp', ascending: false };
+    }
+    
+    // Toggle direction if same column, otherwise default to ascending
+    if (window.changeLogSort.column === column) {
+        window.changeLogSort.ascending = !window.changeLogSort.ascending;
+    } else {
+        window.changeLogSort.column = column;
+        window.changeLogSort.ascending = true;
+    }
+    
+    renderChangeLogGrid();
 }
 
 // Render editable courses table
