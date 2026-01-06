@@ -6824,21 +6824,13 @@ function buildDataContext(question = '') {
         }
     }
     
-    // Output scheduled courses in structured format
-    context += `SCHEDULED COURSES (${scheduledCourses.length} total):\n`;
+    // Output scheduled courses in compact format (1 line each)
+    context += `SCHEDULED COURSES (${scheduledCourses.length}):\n`;
     scheduledCourses.forEach(sc => {
-        context += `- Course: ${sc.courseId} "${sc.courseName}"\n`;
-        context += `  Instructor: ${sc.instructor}\n`;
-        context += `  Event: ${sc.eventName} at ${sc.location}\n`;
-        context += `  Days: ${sc.days} (${sc.dates})\n`;
-        context += `  Room: ${sc.room}, Duration: ${sc.duration} days\n\n`;
+        context += `${sc.courseId}: ${sc.instructor}, ${sc.eventName} (${sc.location}), Days ${sc.days}, Room ${sc.room}\n`;
     });
     
-    // Add summary statistics
-    context += `\nSUMMARY:\n`;
-    context += `- Total courses scheduled: ${scheduledCourses.length}\n`;
-    context += `- Total courses in system: ${courses.length}\n`;
-    context += `- Total events: ${events.length}\n`;
+    context += `\nTotal courses: ${courses.length}, Events: ${events.length}\n`;
     
     // Only show conflicts if relevant
     const conflicts = [];
@@ -6910,14 +6902,7 @@ async function sendAiMessage() {
             parts: [{ text: 'I understand the scheduling data. I will answer questions using the anonymized instructor names like "John S." and keep responses concise.' }]
         });
         
-        // Add conversation history (last 3 exchanges = 6 messages to reduce token usage)
-        const recentHistory = conversationHistory.slice(-6);
-        recentHistory.forEach(msg => {
-            contents.push({
-                role: msg.role,
-                parts: [{ text: msg.text }]
-            });
-        });
+        // Skip conversation history to save tokens - each request is independent
         
         // Add current question
         contents.push({
