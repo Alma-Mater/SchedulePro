@@ -6810,92 +6810,46 @@ function anonymizeInstructor(fullName) {
 
 // Build anonymized data context
 function buildDataContext(question = '') {
-    let context = 'You are an AI assistant for a course scheduling system. IMPORTANT: Only provide information that is explicitly in the data below. Do not guess or extrapolate.\n\n';
+    let context = 'Scheduled Courses Data:\n\n';
     
-    // Check if question is about "how to" or usage instructions
-    const isHowToQuestion = /how (do|can|to)|what.*steps|guide|instructions|use the|using|tutorial/i.test(question);
-    
-    // For "how to" questions, skip data and only send instructions
-    if (isHowToQuestion) {
-        context += `ROOM GRID VIEW USAGE:\n\n`;
-        context += `SCHEDULE: Expand "All Open Bookings" → select course from dropdown → click "Apply"\n`;
-        context += `MOVE: Drag course blocks to different days on timeline\n`;
-        context += `REMOVE: Click "Remove" button on any course\n`;
-        context += `DRAFT: Click "📝 Draft" to mark tentative, "✓ Finalize" to confirm\n`;
-        context += `LOCK: Click lock icon (🔓/🔒) to prevent/allow changes\n`;
-        context += `EXPORT: Click "📄 Export to CSV" for full schedule\n\n`;
-        return context; // Return early - no data needed for usage questions
-    }
-    
-    // Check if question is about a specific instructor
-    const instructorMatch = question.match(/([A-Z][a-z]+\s+[A-Z]\.)/);
-    const searchInstructor = instructorMatch ? instructorMatch[1] : null;
-    
-    // Build scheduled courses list with full details
+    // Build ALL scheduled courses - no filtering
     const scheduledCourses = [];
     for (const eventId in schedule) {
         const event = events.find(e => e.Event_ID === eventId);
         for (const courseId in schedule[eventId]) {
             const placement = schedule[eventId][courseId];
             const course = courses.find(c => c.Course_ID === courseId);
-            if (course && placement.startDay) {
+            // Check if course is actually placed (has days array with content OR startDay set)
+            const isPlaced = placement && (
+                (placement.days && placement.days.length > 0) || 
+                (placement.startDay !== null && placement.startDay !== undefined)
+            );
+            
+            if (course && isPlaced) {
                 const anonName = anonymizeInstructor(course.Instructor);
-                // If searching for specific instructor, only include their courses
-                if (!searchInstructor || anonName === searchInstructor) {
-                    const days = placement.days && placement.days.length > 0 ? placement.days : [];
-                    const eventDaysData = eventDays.filter(d => d.Event_ID === eventId && days.includes(d.Day_Number));
-                    const dates = eventDaysData.map(d => d.Day_Date).join(', ');
-                    
-                    scheduledCourses.push({
-                        courseId: course.Course_ID,
-                        courseName: course.Course_Name,
-                        instructor: anonName,
-                        eventId: eventId,
-                        eventName: event ? event.Event : eventId,
-                        location: event ? event.Location : 'N/A',
-                        days: days.join(','),
-                        dates: dates || 'TBD',
-                        room: placement.roomNumber || 1,
-                        duration: course.Duration_Days
-                    });
-                }
+                const days = placement.days && placement.days.length > 0 ? placement.days : [];
+                const eventDaysData = eventDays.filter(d => d.Event_ID === eventId && days.includes(d.Day_Number));
+                const dates = eventDaysData.map(d => d.Day_Date).join(', ');
+                const isVirtual = event && isVirtualEvent(event.Event);
+                
+                scheduledCourses.push({
+                    courseId: course.Course_ID,
+                    courseName: course.Course_Name,
+                    instructor: anonName,
+                    eventName: event ? event.Event : eventId,
+                    dates: dates || 'TBD',
+                    modality: isVirtual ? 'Virtual' : 'In-Person'
+                });
             }
         }
     }
     
-    // Output scheduled courses in compact format (1 line each)
-    context += `SCHEDULED COURSES (${scheduledCourses.length}):\n`;
+    // Output in ultra-compact format
     scheduledCourses.forEach(sc => {
-        context += `${sc.courseId}: ${sc.instructor}, ${sc.eventName} (${sc.location}), Days ${sc.days}, Room ${sc.room}\n`;
+        context += `${sc.courseName} | ${sc.instructor} | ${sc.eventName} | ${sc.modality} | ${sc.dates}\n`;
     });
     
-    context += `\nTotal courses: ${courses.length}, Events: ${events.length}\n`;
-    
-    // Only show conflicts if relevant
-    const conflicts = [];
-    for (const eventId in schedule) {
-        for (const courseId in schedule[eventId]) {
-            const placement = schedule[eventId][courseId];
-            const course = courses.find(c => c.Course_ID === courseId);
-            if (course && placement.days && placement.days.length > 0) {
-                const anonName = anonymizeInstructor(course.Instructor);
-                if (!searchInstructor || anonName === searchInstructor) {
-                    const blockedDays = getBlockedDays(course.Instructor, eventId);
-                    const hasConflict = placement.days.some(day => blockedDays.includes(day));
-                    if (hasConflict) {
-                        conflicts.push(`${course.Course_ID} (${anonName}) has instructor unavailability conflict`);
-                    }
-                }
-            }
-        }
-    }
-    
-    if (conflicts.length > 0) {
-        context += `\nCONFLICTS (${conflicts.length} total):\n`;
-        conflicts.forEach(c => context += `- ${c}\n`);
-    }
-    
-    context += '\n\nIMPORTANT: Always refer to instructors by their anonymized names (e.g., "John S."). Keep responses concise and helpful.';
+    context += `\nAnswer concisely. Use instructor names as shown (e.g., "John S."). For counts, list numbers only.`;
     
     return context;
 }
@@ -6926,24 +6880,22 @@ async function sendAiMessage() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
     try {
-        const context = buildDataContext(question);  // Pass question for filtering
+        const context = buildDataContext(question);
         
-        // Build conversation with history
+        // Build conversation
         const contents = [];
         
-        // Add system context as first message
+        // Add data context
         contents.push({
             role: 'user',
             parts: [{ text: context }]
         });
         contents.push({
             role: 'model',
-            parts: [{ text: 'I understand the scheduling data. I will answer questions using the anonymized instructor names like "John S." and keep responses concise.' }]
+            parts: [{ text: 'OK' }]
         });
         
-        // Skip conversation history to save tokens - each request is independent
-        
-        // Add current question
+        // Add question
         contents.push({
             role: 'user',
             parts: [{ text: question }]
