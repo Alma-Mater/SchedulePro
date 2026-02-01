@@ -6949,9 +6949,13 @@ async function sendAiMessage() {
             parts: [{ text: question }]
         });
         
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        // Call Supabase Edge Function proxy instead of direct Gemini API
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/gemini-proxy`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+            },
             body: JSON.stringify({ contents: contents })
         });
         

@@ -1,0 +1,3 @@
+seems every time we update you ask to refresh, and I lose all data and have to import again. So for software updates when users use this on github pages will they lose all data every version update?
+
+right now adding a room and a new course is not user-friendly in terms of scrolling. Let's say we add a room to an event - top of window. Then we scroll all the way to the bottom of the event to add a course - bottom. Then we have to scroll all the way back up to give the unbooked course a room - top. Then again scroll down to drag its flow to its lane - bottom. 
