@@ -6844,10 +6844,16 @@ function buildDataContext(question = '') {
         }
     }
     
+    // Debug: log to console
+    console.log('Total scheduled courses found:', scheduledCourses.length);
+    console.log('Scheduled courses:', scheduledCourses);
+    
     // Output in ultra-compact format
     scheduledCourses.forEach(sc => {
         context += `${sc.courseName} | ${sc.instructor} | ${sc.eventName} | ${sc.modality} | ${sc.dates}\n`;
     });
+    
+    console.log('Context being sent to AI:', context);
     
     context += `\nAnswer concisely. Use instructor names as shown (e.g., "John S."). For counts, list numbers only.`;
     
