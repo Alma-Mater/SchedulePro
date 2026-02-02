@@ -5613,12 +5613,20 @@ function renderSwimlanesGrid() {
         // Build day timeline (single timeline for all rooms in this view)
         let dayTimelineHTML = `
             <div class="day-timeline" data-event-id="${eventId}">
-                ${days.map((day, index) => `
+                ${days.map((day, index) => {
+                    // Convert date from YYYY-MM-DD to MM-DD-YYYY
+                    let formattedDate = '';
+                    if (day.Day_Date) {
+                        const parts = day.Day_Date.split('-');
+                        formattedDate = `${parts[1]}-${parts[2]}-${parts[0]}`;
+                    }
+                    return `
                     <div class="day-slot" data-day-num="${day.Day_Number}">
                         <div class="day-label">Day ${day.Day_Number}</div>
-                        <div class="day-date">${day.Day_Date || ''}</div>
+                        <div class="day-date">${formattedDate}</div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
         `;
         
