@@ -5564,8 +5564,10 @@ function renderSwimlanesGrid() {
             }
         });
         
-        // Get days for this event
-        const days = eventDays.filter(d => d.Event_ID === eventId);
+        // Get days for this event and sort by Day_Number
+        const days = eventDays
+            .filter(d => d.Event_ID === eventId)
+            .sort((a, b) => parseInt(a.Day_Number) - parseInt(b.Day_Number));
         
         // Create swimlane
         const swimlane = document.createElement('div');
@@ -5573,19 +5575,24 @@ function renderSwimlanesGrid() {
         swimlane.className = isLocked ? 'event-swimlane locked' : 'event-swimlane';
         swimlane.dataset.eventId = eventId;
         
-        // Get date range from first and last event days
+        // Get date range from first and last event days (now correctly sorted)
         const eventFirstDay = days[0];
         const eventLastDay = days[days.length - 1];
         let dateRangeStr = '';
         if (eventFirstDay && eventFirstDay.Day_Date) {
-            const startDate = new Date(eventFirstDay.Day_Date);
+            // Parse date string directly to avoid timezone issues
+            const startParts = eventFirstDay.Day_Date.split('-');
+            const startYear = parseInt(startParts[0]);
+            const startMonth = parseInt(startParts[1]) - 1; // Month is 0-indexed
+            const startDay = parseInt(startParts[2]);
+            
             const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            const monthName = months[startDate.getMonth()];
-            const startDay = startDate.getDate();
+            const monthName = months[startMonth];
             
             if (eventLastDay && eventLastDay.Day_Date) {
-                const endDate = new Date(eventLastDay.Day_Date);
-                const endDay = endDate.getDate();
+                const endParts = eventLastDay.Day_Date.split('-');
+                const endDay = parseInt(endParts[2]);
+                
                 dateRangeStr = `${monthName} ${startDay}-${endDay}`;
             } else {
                 dateRangeStr = `${monthName} ${startDay}`;
