@@ -3774,7 +3774,9 @@ function exportTrainerContracts() {
     // Helper: Format date as "Mar 17 2026"
     function formatDate(dateStr) {
         if (!dateStr) return '';
-        const date = new Date(dateStr);
+        // Parse date string as local time to avoid timezone shifts
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return `${months[date.getMonth()]} ${date.getDate()} ${date.getFullYear()}`;
     }
@@ -3782,7 +3784,9 @@ function exportTrainerContracts() {
     // Helper: Get month name
     function getMonthName(dateStr) {
         if (!dateStr) return '';
-        const date = new Date(dateStr);
+        // Parse date string as local time to avoid timezone shifts
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
         const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         return months[date.getMonth()];
     }
